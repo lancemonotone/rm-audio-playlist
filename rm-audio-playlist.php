@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       RM Audio Playlist
  * Description:         Admin ACF-backed MP3 playlists and a public player with play order, speed, skip, repeat, shuffle, and keyboard support.
- * Version:             1.3.2
+ * Version:             1.3.3
  * Requires at least:   6.0
  * Requires PHP:        7.4
  * Author:              Rusmiller
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'RM_AUDIO_PLAYLIST_VERSION', '1.3.2' );
+define( 'RM_AUDIO_PLAYLIST_VERSION', '1.3.3' );
 define( 'RM_AUDIO_PLAYLIST_FILE', __FILE__ );
 define( 'RM_AUDIO_PLAYLIST_DIR', plugin_dir_path( __FILE__ ) );
 define( 'RM_AUDIO_PLAYLIST_URL', plugin_dir_url( __FILE__ ) );
@@ -26,6 +26,7 @@ require_once RM_AUDIO_PLAYLIST_DIR . 'includes/class-rm-audio-playlist-mime.php'
 require_once RM_AUDIO_PLAYLIST_DIR . 'includes/class-rm-audio-playlist-cpt.php';
 require_once RM_AUDIO_PLAYLIST_DIR . 'includes/class-rm-audio-playlist-acf.php';
 require_once RM_AUDIO_PLAYLIST_DIR . 'includes/class-rm-audio-playlist-frontend.php';
+require_once RM_AUDIO_PLAYLIST_DIR . 'includes/class-rm-audio-playlist-block.php';
 require_once RM_AUDIO_PLAYLIST_DIR . 'includes/class-rm-audio-playlist-admin.php';
 
 add_filter( 'upload_mimes', array( 'RM_Audio_Playlist_Mime', 'allow_mp3' ) );
@@ -36,6 +37,7 @@ add_action( 'admin_notices', array( 'RM_Audio_Playlist_Cpt', 'admin_notice_acf' 
 add_action( 'acf/init', array( 'RM_Audio_Playlist_Acf', 'register' ) );
 
 RM_Audio_Playlist_Frontend::init();
+RM_Audio_Playlist_Block::init();
 RM_Audio_Playlist_Admin::init();
 
 /**

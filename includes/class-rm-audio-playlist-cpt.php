@@ -68,7 +68,7 @@ class RM_Audio_Playlist_Cpt {
 		?>
 		<div class="notice notice-error">
 			<p>
-				<?php esc_html_e( 'RM Audio Playlist requires Advanced Custom Fields (Pro recommended for the repeater field). Please activate ACF.', 'rm-audio-playlist' ); ?>
+				<?php esc_html_e( 'RM Audio Playlist requires Advanced Custom Fields (Pro recommended for playlist tracks and the block editor block). Please activate ACF.', 'rm-audio-playlist' ); ?>
 			</p>
 		</div>
 		<?php

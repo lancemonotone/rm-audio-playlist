@@ -22,6 +22,11 @@ class RM_Audio_Playlist_Frontend {
 	/**
 	 * @var bool
 	 */
+	private static $assets_registered = false;
+
+	/**
+	 * @var bool
+	 */
 	private static $assets_enqueued = false;
 
 	/**
@@ -36,11 +41,28 @@ class RM_Audio_Playlist_Frontend {
 	 * Register script/style; actual enqueue happens when shortcode runs.
 	 */
 	public static function register_assets(): void {
+		if ( self::$assets_registered ) {
+			return;
+		}
 		$base = trailingslashit( RM_AUDIO_PLAYLIST_URL );
 		$ver  = RM_AUDIO_PLAYLIST_VERSION;
 
 		wp_register_style( self::HANDLE_CSS, $base . 'assets/css/rm-audio-playlist-frontend.css', array(), $ver );
 		wp_register_script( self::HANDLE_JS, $base . 'assets/js/rm-audio-playlist-frontend.js', array(), $ver, true );
+		self::$assets_registered = true;
+	}
+
+	/**
+	 * Register (if needed) and enqueue player CSS/JS (front end or block editor).
+	 */
+	public static function enqueue_assets(): void {
+		self::register_assets();
+		if ( self::$assets_enqueued ) {
+			return;
+		}
+		wp_enqueue_style( self::HANDLE_CSS );
+		wp_enqueue_script( self::HANDLE_JS );
+		self::$assets_enqueued = true;
 	}
 
 	/**
@@ -155,6 +177,51 @@ class RM_Audio_Playlist_Frontend {
 	}
 
 	/**
+	 * Markup for one player instance (shortcode, ACF block, PHP).
+	 *
+	 * @param int    $id           Playlist post ID.
+	 * @param string $extra_class  Extra CSS classes (sanitized as attribute).
+	 */
+	public static function render( int $id, string $extra_class = '' ): string {
+		if ( $id <= 0 ) {
+			return '';
+		}
+		$payload = self::get_playlist_payload( $id );
+		if ( is_wp_error( $payload ) || empty( $payload['tracks'] ) ) {
+			if ( is_user_logged_in() && current_user_can( 'edit_post', $id ) ) {
+				$msg = is_wp_error( $payload ) ? $payload->get_error_message() : __( 'Add at least one MP3 in the tracks repeater.', 'rm-audio-playlist' );
+				return '<p class="rm-audio-playlist--error">' . esc_html( $msg ) . '</p>';
+			}
+			return '';
+		}
+		self::enqueue_assets();
+		$json = wp_json_encode(
+			$payload,
+			JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
+		);
+		$uid = 'rm-pl-' . $id . '-' . (string) wp_unique_id( 'a' );
+		$cls = 'rm-audio-playlist' . ( $extra_class !== '' ? ' ' . esc_attr( $extra_class ) : '' );
+		ob_start();
+		?>
+		<div
+			class="<?php echo esc_attr( $cls ); ?>"
+			id="<?php echo esc_attr( $uid ); ?>"
+			data-rm-playlist="<?php echo esc_attr( (string) $json ); ?>"
+		>
+			<div class="rm-audio-playlist__noscript">
+				<p><strong><?php echo esc_html( $payload['title'] ); ?></strong></p>
+				<ol>
+					<?php foreach ( $payload['tracks'] as $t ) : ?>
+					<li><a href="<?php echo esc_url( $t['url'] ); ?>"><?php echo esc_html( $t['title'] ); ?></a></li>
+					<?php endforeach; ?>
+				</ol>
+			</div>
+		</div>
+		<?php
+		return (string) ob_get_clean();
+	}
+
+	/**
 	 * [rm_audio_playlist id="123" class="..."]
 	 *
 	 * @param string[]|array<string, string> $atts Shortcode atts.
@@ -176,46 +243,6 @@ class RM_Audio_Playlist_Frontend {
 			}
 			return '';
 		}
-		$payload = self::get_playlist_payload( $id );
-		if ( is_wp_error( $payload ) || empty( $payload['tracks'] ) ) {
-			if ( is_user_logged_in() && current_user_can( 'edit_post', $id ) ) {
-				$msg = is_wp_error( $payload ) ? $payload->get_error_message() : __( 'Add at least one MP3 in the tracks repeater.', 'rm-audio-playlist' );
-				return '<p class="rm-audio-playlist--error">' . esc_html( $msg ) . '</p>';
-			}
-			return '';
-		}
-		if ( ! self::$assets_enqueued ) {
-			wp_enqueue_style( self::HANDLE_CSS );
-			wp_enqueue_script( self::HANDLE_JS );
-			self::$assets_enqueued = true;
-		}
-		$json = wp_json_encode(
-			$payload,
-			JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
-		);
-		$uid  = 'rm-pl-' . $id . '-' . (string) wp_unique_id( 'a' );
-		$cls  = 'rm-audio-playlist' . ( $more !== '' ? ' ' . esc_attr( $more ) : '' );
-		ob_start();
-		?>
-		<div
-			class="<?php echo esc_attr( $cls ); ?>"
-			id="<?php echo esc_attr( $uid ); ?>"
-			data-rm-playlist="<?php echo esc_attr( (string) $json ); ?>"
-		>
-			<?php
-			// Minimal fallback if JS off; one track link at a time is not full UX but not empty.
-			$first = $payload['tracks'][0];
-			?>
-			<div class="rm-audio-playlist__noscript">
-				<p><strong><?php echo esc_html( $payload['title'] ); ?></strong></p>
-				<ol>
-					<?php foreach ( $payload['tracks'] as $t ) : ?>
-					<li><a href="<?php echo esc_url( $t['url'] ); ?>"><?php echo esc_html( $t['title'] ); ?></a></li>
-					<?php endforeach; ?>
-				</ol>
-			</div>
-		</div>
-		<?php
-		return (string) ob_get_clean();
+		return self::render( $id, $more );
 	}
 }
