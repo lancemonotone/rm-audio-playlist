@@ -105,12 +105,27 @@
 		this.shuffle = false;
 		this.audio = new Audio();
 		this.audio.preload = 'metadata';
+		/* Web Audio: required for cross-origin MP3 analysis (same-origin uploads are fine). */
+		this.audio.crossOrigin = 'anonymous';
 		this._bind = this._onKeydown.bind(this);
 		this._errTimer = 0;
 		this._floatTip = null;
 		this._floatTipTarget = null;
 		this._tipHideTimer = 0;
 		this._dragFromQi = -1;
+		this._audioCtx = null;
+		this._analyser = null;
+		this._waveGraphReady = false;
+		this._waveGraphFailed = false;
+		this._waveRaf = 0;
+		this._waveTd = null;
+		this._waveCanvas = null;
+		this._controlsStack = null;
+		this._waveCssW = 0;
+		this._waveCssH = 0;
+		this._waveResizeObs = null;
+		this._floatTipFromKeyboard = false;
+		this._focusTipTimer = 0;
 		this._build();
 	}
 
@@ -162,7 +177,7 @@
 		bar.setAttribute('aria-valuemin', '0');
 		bar.setAttribute('aria-valuemax', '0');
 		bar.setAttribute('tabindex', '0');
-		bar.classList.add('rm-audio-playlist--has-tip', 'rm-audio-playlist__tip--below');
+		bar.classList.add('rm-audio-playlist--has-tip');
 		bar.setAttribute(
 			'data-rm-tip',
 			'Click or drag to jump to a position in the current track.'
@@ -181,6 +196,16 @@
 		this._progressFill = track.querySelector('.rm-audio-playlist__progress-fill');
 		this._progressThumb = track.querySelector('.rm-audio-playlist__progress-thumb');
 		wrap.appendChild(timeBar);
+
+		var controlsStack = _create('div', 'rm-audio-playlist__controls-stack', '');
+		self._controlsStack = controlsStack;
+		var waveCanvas = document.createElement('canvas');
+		waveCanvas.className = 'rm-audio-playlist__waveform';
+		waveCanvas.setAttribute('aria-hidden', 'true');
+		controlsStack.appendChild(waveCanvas);
+		self._waveCanvas = waveCanvas;
+
+		var controlsFg = _create('div', 'rm-audio-playlist__controls-foreground', '');
 
 		var transport = _create('div', 'rm-audio-playlist__transport', '');
 		transport.appendChild(
@@ -209,22 +234,41 @@
 				'Next track in the list (or follow repeat rules).'
 			)
 		);
-		wrap.appendChild(transport);
+		controlsFg.appendChild(transport);
 
-		var skipRow = _create('div', 'rm-audio-playlist__skips', '');
-		skipRow.appendChild(
+		var skipCorners = _create('div', 'rm-audio-playlist__skip-corner-wrap', '');
+		var skipNeg = _create('div', 'rm-audio-playlist__skips rm-audio-playlist__skips--neg', '');
+		skipNeg.appendChild(
 			self._skipBtn('-30', 'Jump back 30 seconds in this track', function () { self._seekRel(-30); })
 		);
-		skipRow.appendChild(
+		skipNeg.appendChild(
 			self._skipBtn('-10', 'Jump back 10 seconds in this track', function () { self._seekRel(-10); })
 		);
-		skipRow.appendChild(
+		var skipPos = _create('div', 'rm-audio-playlist__skips rm-audio-playlist__skips--pos', '');
+		skipPos.appendChild(
 			self._skipBtn('+10', 'Jump forward 10 seconds in this track', function () { self._seekRel(10); })
 		);
-		skipRow.appendChild(
+		skipPos.appendChild(
 			self._skipBtn('+30', 'Jump forward 30 seconds in this track', function () { self._seekRel(30); })
 		);
-		wrap.appendChild(skipRow);
+		skipCorners.appendChild(skipNeg);
+		skipCorners.appendChild(skipPos);
+		controlsFg.appendChild(skipCorners);
+
+		controlsStack.appendChild(controlsFg);
+		wrap.appendChild(controlsStack);
+
+		if (typeof ResizeObserver !== 'undefined') {
+			self._waveResizeObs = new ResizeObserver(function () {
+				self._resizeWaveformCanvas();
+			});
+			self._waveResizeObs.observe(controlsStack);
+		}
+		window.addEventListener('resize', self._resizeWaveformCanvasBound || (self._resizeWaveformCanvasBound = self._resizeWaveformCanvas.bind(self)));
+		requestAnimationFrame(function () {
+			self._resizeWaveformCanvas();
+			self._drawWaveformIdle();
+		});
 
 		var toolbar = _create('div', 'rm-audio-playlist__toolbar', '');
 		this._shufBtn = self._iconBtn(
@@ -254,7 +298,7 @@
 		sel.id = sid;
 		sel.className = 'rm-audio-playlist__select';
 		sel.setAttribute('aria-label', 'Playback speed');
-		var speedTip = _create('span', 'rm-audio-playlist--has-tip rm-audio-playlist__tip--above rm-audio-playlist__wrap', '');
+		var speedTip = _create('span', 'rm-audio-playlist--has-tip rm-audio-playlist__wrap', '');
 		speedTip.setAttribute(
 			'data-rm-tip',
 			'Playback speed — useful for talks, practice, or skimming. Normal is 1×.'
@@ -313,7 +357,7 @@
 		rng.step = '0.01';
 		rng.value = String(self._getStoredVolume());
 		rng.setAttribute('aria-label', 'Volume');
-		var volTip = _create('span', 'rm-audio-playlist--has-tip rm-audio-playlist__tip--above rm-audio-playlist__wrap rm-audio-playlist__wrap--grow', '');
+		var volTip = _create('span', 'rm-audio-playlist--has-tip rm-audio-playlist__wrap rm-audio-playlist__wrap--grow', '');
 		volTip.setAttribute(
 			'data-rm-tip',
 			'Volume. Level is saved for next time in this browser (same site).'
@@ -371,6 +415,9 @@
 		this._setPlayStateUi(false);
 		this._syncMuteUi();
 
+		this._ensureFloatTip();
+		this._wireFloatTipsDelegated();
+
 		this._wireAudio();
 		this._wireProgress(bar);
 		this._load(0, false);
@@ -408,6 +455,29 @@
 		this._floatTip.style.top = y + 'px';
 	};
 
+	PlayerBlock.prototype._positionFloatTipNearElement = function (el) {
+		if (!this._floatTip || !el) {
+			return;
+		}
+		var r = el.getBoundingClientRect();
+		var pad = 12;
+		var tw = this._floatTip.offsetWidth;
+		var th = this._floatTip.offsetHeight;
+		var x = r.left + (r.width - tw) / 2;
+		var y = r.bottom + pad;
+		if (x < 8) {
+			x = 8;
+		}
+		if (x + tw > window.innerWidth - 8) {
+			x = Math.max(8, window.innerWidth - tw - 8);
+		}
+		if (y + th > window.innerHeight - 8) {
+			y = Math.max(8, r.top - th - pad);
+		}
+		this._floatTip.style.left = x + 'px';
+		this._floatTip.style.top = y + 'px';
+	};
+
 	PlayerBlock.prototype._hideFloatTip = function () {
 		var self = this;
 		var tip = this._floatTip;
@@ -427,18 +497,19 @@
 		}, 220);
 	};
 
-	PlayerBlock.prototype._bindCursorTip = function (el) {
+	PlayerBlock.prototype._wireFloatTipsDelegated = function () {
 		var self = this;
-		if (!el) {
-			return;
-		}
-		this._ensureFloatTip();
-		el.addEventListener('pointerenter', function (e) {
+		var root = this.root;
+
+		function showFor(el, e) {
 			var text = el.getAttribute('data-rm-tip');
 			if (!text) {
 				return;
 			}
 			clearTimeout(self._tipHideTimer);
+			clearTimeout(self._focusTipTimer);
+			self._floatTipFromKeyboard = false;
+			self._ensureFloatTip();
 			self._floatTipTarget = el;
 			self._floatTip.textContent = text;
 			self._floatTip.classList.remove('is-out');
@@ -447,19 +518,97 @@
 			requestAnimationFrame(function () {
 				self._positionFloatTip(e);
 			});
-		});
-		el.addEventListener('pointermove', function (e) {
-			if (self._floatTipTarget !== el) {
+		}
+
+		root.addEventListener(
+			'pointerover',
+			function (e) {
+				var el = e.target.closest('.rm-audio-playlist--has-tip[data-rm-tip]');
+				if (!el || !root.contains(el)) {
+					return;
+				}
+				if (self._floatTipTarget === el) {
+					self._positionFloatTip(e);
+					return;
+				}
+				showFor(el, e);
+			},
+			true
+		);
+
+		root.addEventListener(
+			'pointerout',
+			function (e) {
+				var tipEl = self._floatTipTarget;
+				if (!tipEl) {
+					return;
+				}
+				var rel = e.relatedTarget;
+				if (rel && tipEl.contains(rel)) {
+					return;
+				}
+				self._floatTipTarget = null;
+				self._floatTipFromKeyboard = false;
+				self._hideFloatTip();
+			},
+			true
+		);
+
+		root.addEventListener(
+			'pointermove',
+			function (e) {
+				if (!self._floatTipTarget || !self._floatTip || !self._floatTip.classList.contains('is-visible')) {
+					return;
+				}
+				if (!self._floatTipTarget.contains(e.target)) {
+					return;
+				}
+				if (self._floatTipFromKeyboard) {
+					self._floatTipFromKeyboard = false;
+				}
+				self._positionFloatTip(e);
+			},
+			true
+		);
+
+		root.addEventListener('focusin', function (e) {
+			var el = e.target.closest('.rm-audio-playlist--has-tip[data-rm-tip]');
+			if (!el || !root.contains(el)) {
 				return;
 			}
-			self._positionFloatTip(e);
-		});
-		el.addEventListener('pointerleave', function () {
-			if (self._floatTipTarget !== el) {
+			var text = el.getAttribute('data-rm-tip');
+			if (!text) {
 				return;
 			}
-			self._floatTipTarget = null;
-			self._hideFloatTip();
+			clearTimeout(self._tipHideTimer);
+			clearTimeout(self._focusTipTimer);
+			self._floatTipFromKeyboard = true;
+			self._floatTipTarget = el;
+			self._ensureFloatTip();
+			self._floatTip.textContent = text;
+			self._floatTip.classList.remove('is-out');
+			self._floatTip.classList.add('is-visible');
+			self._floatTip.style.transform = '';
+			requestAnimationFrame(function () {
+				requestAnimationFrame(function () {
+					self._positionFloatTipNearElement(el);
+				});
+			});
+		});
+
+		root.addEventListener('focusout', function () {
+			clearTimeout(self._focusTipTimer);
+			self._focusTipTimer = setTimeout(function () {
+				if (!self._floatTipFromKeyboard) {
+					return;
+				}
+				var ae = document.activeElement;
+				if (!ae || !root.contains(ae) || !self._floatTipTarget || !self._floatTipTarget.contains(ae)) {
+					self._floatTipFromKeyboard = false;
+					self._floatTipTarget = null;
+					self._hideFloatTip();
+				}
+			}, 0);
 		});
 	};
 
@@ -509,7 +658,7 @@
 
 			var canDrag = !self.shuffle;
 			var handle = document.createElement('span');
-			handle.className = 'rm-audio-playlist__item-handle';
+			handle.className = 'rm-audio-playlist__item-handle rm-audio-playlist--has-tip';
 			handle.setAttribute('draggable', canDrag ? 'true' : 'false');
 			handle.setAttribute('aria-label', canDrag ? 'Drag to reorder' : 'Reordering is off while shuffle is on');
 			handle.setAttribute('data-rm-tip', canDrag ? 'Drag to move this track up or down' : 'Turn shuffle off to reorder tracks');
@@ -536,14 +685,12 @@
 					row.classList.remove('is-drag-over');
 				});
 			});
-			self._bindCursorTip(handle);
 			li.appendChild(handle);
 
 			li.appendChild(_create('span', 'rm-audio-playlist__item-num', String(qi + 1), { 'aria-hidden': 'true' }));
 
 			var b = document.createElement('a');
-			b.className =
-				'rm-audio-playlist__item-title rm-audio-playlist--has-tip rm-audio-playlist__tip--cursor';
+			b.className = 'rm-audio-playlist__item-title rm-audio-playlist--has-tip';
 			b.setAttribute('data-rm-tip', 'Play now');
 			b.href = t.url;
 			b.appendChild(document.createTextNode(t.title));
@@ -551,12 +698,11 @@
 				ev.preventDefault();
 				self._jumpToListIndex(trackIdx);
 			});
-			self._bindCursorTip(b);
 			li.appendChild(b);
 
 			if (t.downloadable) {
 				var dlA = document.createElement('a');
-				dlA.className = 'rm-audio-playlist__item-dl rm-audio-playlist--has-tip rm-audio-playlist__tip--cursor';
+				dlA.className = 'rm-audio-playlist__item-dl rm-audio-playlist--has-tip';
 				dlA.href = t.url;
 				if (t.downloadName) {
 					dlA.setAttribute('download', t.downloadName);
@@ -564,7 +710,6 @@
 				dlA.setAttribute('aria-label', 'Download — ' + t.title);
 				dlA.setAttribute('data-rm-tip', 'Download this track (MP3).');
 				dlA.appendChild(_svg(SVG.dl));
-				self._bindCursorTip(dlA);
 				li.appendChild(dlA);
 			}
 
@@ -729,17 +874,26 @@
 			self._tDur.textContent = _fmtTime(self.audio.duration);
 			var d = isFinite(self.audio.duration) ? self.audio.duration : 0;
 			self._progressBar.setAttribute('aria-valuemax', String(d));
+			self._resizeWaveformCanvas();
+			self._drawWaveformIdle();
 		});
 		this.audio.addEventListener('play', function () {
 			self._setPlayStateUi(true);
 		});
 		this.audio.addEventListener('pause', function () {
 			self._setPlayStateUi(false);
+			self._stopWaveformLoop();
 		});
 		this.audio.addEventListener('playing', function () {
 			if (self._status && (self._status.textContent === 'Loading…' || self._status.textContent === 'Buffering…')) {
 				self._setStatus('');
 			}
+			self._ensureWaveformGraph();
+			if (self._audioCtx && self._audioCtx.state === 'suspended') {
+				self._audioCtx.resume().catch(function () {});
+			}
+			self._resizeWaveformCanvas();
+			self._startWaveformLoop();
 		});
 		this.audio.addEventListener('ended', function () {
 			if (self.repeat === 'one') {
@@ -890,6 +1044,152 @@
 		bar.addEventListener('pointercancel', function () {
 			dragging = false;
 		});
+	};
+
+	PlayerBlock.prototype._resizeWaveformCanvas = function () {
+		if (!this._waveCanvas || !this._controlsStack) {
+			return;
+		}
+		var stack = this._controlsStack;
+		var dpr = window.devicePixelRatio || 1;
+		var cssW = Math.max(1, Math.floor(stack.clientWidth));
+		var cssH = Math.max(1, Math.floor(stack.clientHeight));
+		this._waveCssW = cssW;
+		this._waveCssH = cssH;
+		var w = Math.max(1, Math.floor(cssW * dpr));
+		var h = Math.max(1, Math.floor(cssH * dpr));
+		if (this._waveCanvas.width !== w || this._waveCanvas.height !== h) {
+			this._waveCanvas.width = w;
+			this._waveCanvas.height = h;
+		}
+	};
+
+	PlayerBlock.prototype._ensureWaveformGraph = function () {
+		if (this._waveGraphReady || this._waveGraphFailed) {
+			return;
+		}
+		var AC = window.AudioContext || window.webkitAudioContext;
+		if (!AC) {
+			this._waveGraphFailed = true;
+			return;
+		}
+		try {
+			var ctx = new AC();
+			var src = ctx.createMediaElementSource(this.audio);
+			var analyser = ctx.createAnalyser();
+			analyser.fftSize = 2048;
+			analyser.smoothingTimeConstant = 0.72;
+			src.connect(analyser);
+			analyser.connect(ctx.destination);
+			this._audioCtx = ctx;
+			this._analyser = analyser;
+			this._waveTd = new Uint8Array(analyser.fftSize);
+			this._waveGraphReady = true;
+		} catch (err) {
+			this._waveGraphFailed = true;
+		}
+	};
+
+	PlayerBlock.prototype._drawWaveformIdle = function () {
+		if (!this._waveCanvas || !this._waveCssW) {
+			return;
+		}
+		var canvas = this._waveCanvas;
+		var ctx = canvas.getContext('2d');
+		if (!ctx) {
+			return;
+		}
+		var dpr = window.devicePixelRatio || 1;
+		var cssW = this._waveCssW;
+		var cssH = this._waveCssH;
+		ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+		ctx.clearRect(0, 0, cssW, cssH);
+		ctx.beginPath();
+		ctx.strokeStyle = this._waveAccentStroke();
+		ctx.globalAlpha = 0.2;
+		ctx.lineWidth = 1;
+		var mid = cssH * 0.5;
+		ctx.moveTo(0, mid);
+		ctx.lineTo(cssW, mid);
+		ctx.stroke();
+		ctx.globalAlpha = 1;
+	};
+
+	PlayerBlock.prototype._waveAccentStroke = function () {
+		var raw = getComputedStyle(this.root).getPropertyValue('--rm-accent').trim();
+		return raw || '#3ecfae';
+	};
+
+	PlayerBlock.prototype._drawWaveformFrame = function () {
+		if (!this._waveCanvas || !this._analyser || !this._waveTd || !this._waveCssW) {
+			return;
+		}
+		this._analyser.getByteTimeDomainData(this._waveTd);
+		var canvas = this._waveCanvas;
+		var ctx = canvas.getContext('2d');
+		if (!ctx) {
+			return;
+		}
+		var dpr = window.devicePixelRatio || 1;
+		var cssW = this._waveCssW;
+		var cssH = this._waveCssH;
+		var mid = cssH * 0.5;
+		var amp = mid * 0.92;
+		ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+		ctx.clearRect(0, 0, cssW, cssH);
+		ctx.beginPath();
+		ctx.strokeStyle = this._waveAccentStroke();
+		ctx.globalAlpha = 0.65;
+		ctx.lineWidth = 1.35;
+		ctx.lineJoin = 'round';
+		var n = this._waveTd.length;
+		var step = cssW / (n - 1);
+		var x = 0;
+		for (var i = 0; i < n; i++) {
+			var v = this._waveTd[i] / 128 - 1;
+			var y = mid + v * amp;
+			if (i === 0) {
+				ctx.moveTo(x, y);
+			} else {
+				ctx.lineTo(x, y);
+			}
+			x += step;
+		}
+		ctx.stroke();
+		ctx.globalAlpha = 1;
+	};
+
+	PlayerBlock.prototype._startWaveformLoop = function () {
+		var self = this;
+		if (!this._waveCanvas) {
+			return;
+		}
+		if (!this._analyser) {
+			this._drawWaveformIdle();
+			return;
+		}
+		if (this._waveRaf) {
+			cancelAnimationFrame(this._waveRaf);
+			this._waveRaf = 0;
+		}
+		function tick() {
+			if (self.audio.paused) {
+				self._waveRaf = 0;
+				self._drawWaveformIdle();
+				return;
+			}
+			self._drawWaveformFrame();
+			self._waveRaf = requestAnimationFrame(tick);
+		}
+		this._waveRaf = requestAnimationFrame(tick);
+	};
+
+	PlayerBlock.prototype._stopWaveformLoop = function () {
+		if (this._waveRaf) {
+			cancelAnimationFrame(this._waveRaf);
+			this._waveRaf = 0;
+		}
+		this._drawWaveformIdle();
 	};
 
 	PlayerBlock.prototype._seekRel = function (sec) {

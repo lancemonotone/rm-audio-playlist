@@ -200,13 +200,65 @@
   }
 }
 
-/* Main transport */
-.rm-audio-playlist__transport {
+/* Transport + skip row: live waveform (time domain) behind controls */
+.rm-audio-playlist__controls-stack {
+  position: relative;
+  margin: 0 0 0.9rem;
+  padding: 0.5rem 0.35rem 0.45rem;
+  min-height: 8rem;
+  border-radius: 12px;
+  background: var(--rm-surface);
+  border: 1px solid var(--rm-border);
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.rm-audio-playlist__waveform {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.rm-audio-playlist__controls-foreground {
+  position: relative;
+  z-index: 1;
+  min-height: 8rem;
+  box-sizing: border-box;
+}
+
+/* Main transport: dead-center in stack (skips sit in bottom corners) */
+.rm-audio-playlist__controls-foreground .rm-audio-playlist__transport {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  margin-bottom: 0.75rem;
+  margin: 0;
+}
+
+.rm-audio-playlist__skip-corner-wrap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0.35rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 0.2rem;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.rm-audio-playlist__skip-corner-wrap .rm-audio-playlist__skips {
+  pointer-events: auto;
 }
 
 .rm-audio-playlist__ibtn {
@@ -279,38 +331,58 @@
   height: 1.5rem;
 }
 
-/* Skips (compact caps) */
+/* Skips: small circles (prev/next / shuffle aesthetic), corner groups */
 .rm-audio-playlist__skips {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  justify-content: center;
-  margin-bottom: 0.9rem;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  gap: 0.28rem;
+  align-items: center;
+  margin: 0;
 }
 
 .rm-audio-playlist__skip {
+  box-sizing: border-box;
   font: inherit;
-  min-width: 2.6rem;
-  padding: 0.35rem 0.4rem;
-  border: 1px solid var(--rm-border);
-  border-radius: 8px;
-  background: var(--rm-surface);
+  width: 2.05rem;
+  height: 2.05rem;
+  min-width: 2.05rem;
+  padding: 0;
+  margin: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
   color: var(--rm-muted);
   cursor: pointer;
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.02em;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    background 0.15s ease,
+    color 0.12s ease,
+    transform 0.1s ease;
 }
 
 .rm-audio-playlist__skip:hover,
 .rm-audio-playlist__skip:focus-visible {
-  border-color: var(--rm-accent);
+  background: var(--rm-glow);
   color: var(--rm-accent);
   outline: none;
 }
 
+.rm-audio-playlist__skip:focus-visible {
+  box-shadow:
+    0 0 0 2px var(--rm-elev),
+    0 0 0 4px var(--rm-accent);
+}
+
 .rm-audio-playlist__skip-cap {
   display: block;
+  line-height: 1;
 }
 
 /* Toolbar: shuffle, repeat, speed, volume */
@@ -584,7 +656,7 @@
   }
 }
 
-/* ---- Animated tooltips (data-rm-tip) ---- */
+/* ---- Tooltips: JS float layer only (follows pointer); no ::after ---- */
 .rm-audio-playlist {
   --rm-tip-bg: #1a1a18;
   --rm-tip-fg: #faf9f6;
@@ -598,108 +670,9 @@
   }
 }
 
-.rm-audio-playlist--has-tip {
-  position: relative;
-  z-index: 0;
-}
-
-.rm-audio-playlist--has-tip:hover,
-.rm-audio-playlist--has-tip:focus-within {
-  z-index: 12;
-}
-
 .rm-audio-playlist--has-tip::after {
-  content: attr(data-rm-tip);
-  position: absolute;
-  left: 50%;
-  bottom: calc(100% + 8px);
-  z-index: 24;
-  min-width: 18ch;
-  max-width: min(16rem, 70vw);
-  padding: 0.5rem 0.65rem;
-  border-radius: var(--rm-tip-radius);
-  background: var(--rm-tip-bg);
-  color: var(--rm-tip-fg);
-  font-size: 0.72rem;
-  font-weight: 500;
-  line-height: 1.35;
-  text-align: left;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.18);
-  pointer-events: none;
-  opacity: 0;
-  visibility: hidden;
-  transform: translate3d(-50%, 6px, 0);
-  transition:
-    opacity 0.2s ease,
-    transform 0.22s cubic-bezier(0.2, 0.9, 0.2, 1),
-    visibility 0s linear 0.35s;
-}
-
-.rm-audio-playlist__tip--below::after {
-  bottom: auto;
-  top: calc(100% + 8px);
-  transform: translate3d(-50%, -6px, 0);
-}
-
-.rm-audio-playlist__tip--start::after {
-  left: 0;
-  right: auto;
-  min-width: 18ch;
-  max-width: min(14rem, 85vw);
-  transform: translate3d(0, 6px, 0);
-}
-
-/* Below + start: scrollable queue clips “above” tooltips (overflow), not z-index */
-.rm-audio-playlist__tip--below.rm-audio-playlist__tip--start::after {
-  bottom: auto;
-  top: calc(100% + 8px);
-  left: 0;
-  right: auto;
-  min-width: 18ch;
-  max-width: min(14rem, 85vw);
-  transform: translate3d(0, -6px, 0);
-}
-
-.rm-audio-playlist--has-tip:hover::after,
-.rm-audio-playlist--has-tip:focus-visible::after {
-  opacity: 1;
-  visibility: visible;
-  transform: translate3d(-50%, 0, 0);
-  transition-delay: 0.42s;
-  transition-property: opacity, transform, visibility;
-}
-
-.rm-audio-playlist__tip--start:hover::after,
-.rm-audio-playlist__tip--start:focus-visible::after {
-  transform: translate3d(0, 0, 0);
-}
-
-.rm-audio-playlist__tip--below.rm-audio-playlist__tip--start:hover::after,
-.rm-audio-playlist__tip--below.rm-audio-playlist__tip--start:focus-visible::after {
-  transform: translate3d(0, 0, 0);
-}
-
-.rm-audio-playlist__tip--below:hover::after,
-.rm-audio-playlist__tip--below:focus-visible::after {
-  transform: translate3d(-50%, 0, 0);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .rm-audio-playlist--has-tip::after {
-    transition-duration: 0.01ms !important;
-    transition-delay: 0s !important;
-  }
-}
-
-/* Cursor-following tooltips (queue row controls); ::after disabled */
-.rm-audio-playlist__tip--cursor::after {
   content: none !important;
   display: none !important;
-}
-
-.rm-audio-playlist__tip--cursor:hover,
-.rm-audio-playlist__tip--cursor:focus-within {
-  z-index: 0;
 }
 
 .rm-audio-playlist__floattip {
@@ -750,7 +723,7 @@
   }
 }
 
-/* Wrappers for controls that can’t host ::after (select, range) */
+/* Wrappers for volume/speed (flex around select, range) */
 .rm-audio-playlist__wrap {
   display: inline-flex;
   align-items: center;
