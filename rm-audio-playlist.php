@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       RM Audio Playlist
  * Description:         Admin ACF-backed MP3 playlists and a public player with play order, speed, skip, repeat, shuffle, and keyboard support.
- * Version:             1.2.7
+ * Version:             1.2.9
  * Requires at least:   6.0
  * Requires PHP:        7.4
  * Author:              Rusmiller
@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'RM_AUDIO_PLAYLIST_VERSION', '1.2.7' );
+define( 'RM_AUDIO_PLAYLIST_VERSION', '1.2.9' );
 define( 'RM_AUDIO_PLAYLIST_FILE', __FILE__ );
 define( 'RM_AUDIO_PLAYLIST_DIR', plugin_dir_path( __FILE__ ) );
 define( 'RM_AUDIO_PLAYLIST_URL', plugin_dir_url( __FILE__ ) );
