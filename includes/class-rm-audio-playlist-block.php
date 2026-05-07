@@ -19,12 +19,35 @@ class RM_Audio_Playlist_Block {
 
 	public const NAME       = 'rm-audio-playlist';
 	public const FIELD_NAME = 'rm_pl_block_playlist';
+	/** Inserter category slug — prepended so this group appears first (see register_block_category). */
+	public const CATEGORY   = 'rm-audio-playlist';
 
 	/**
 	 * Hooks.
 	 */
 	public static function init(): void {
+		add_filter('block_categories_all', array(self::class, 'register_block_category'), 5, 2);
 		add_action('acf/init', array(self::class, 'register'), 20);
+	}
+
+	/**
+	 * Put “RM Audio Playlist” first in the block inserter (Gutenberg lists categories in array order).
+	 *
+	 * @param array<int, array<string, mixed>> $categories       Default categories.
+	 * @param \WP_Block_Editor_Context         $editor_context   Editor context (unused).
+	 * @return array<int, array<string, mixed>>
+	 */
+	public static function register_block_category(array $categories, $editor_context): array {
+		unset($editor_context);
+		array_unshift(
+			$categories,
+			array(
+				'slug'  => self::CATEGORY,
+				'title' => __('RM Audio Playlist', 'rm-audio-playlist'),
+				'icon'  => null,
+			)
+		);
+		return $categories;
 	}
 
 	/**
@@ -43,7 +66,7 @@ class RM_Audio_Playlist_Block {
 				'title'             => __('Audio playlist', 'rm-audio-playlist'),
 				'description'       => __('RM Audio Playlist player — pick a playlist from the sidebar.', 'rm-audio-playlist'),
 				'render_callback'   => array(self::class, 'render_block'),
-				'category'          => 'media',
+				'category'          => self::CATEGORY,
 				'icon'              => 'playlist-audio',
 				'keywords'          => array('audio', 'playlist', 'music', 'mp3', 'rm'),
 				// ACF block API v2; use auto so the canvas shows preview by default and the field form when
@@ -51,7 +74,10 @@ class RM_Audio_Playlist_Block {
 				'acf_block_version' => 2,
 				'mode'              => 'preview',
 				'supports'          => array(
-					'align'     => true,
+					// ACF block supports: keep boolean align (ACF-safe) and enable text alignment separately.
+					// Wide/full options are provided by the editor when the active theme supports them.
+					'align'      => true,
+					'align_text' => true,
 					'anchor'    => true,
 					'className' => true,
 					'mode'      => true,

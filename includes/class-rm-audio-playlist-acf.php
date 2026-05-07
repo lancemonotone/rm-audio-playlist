@@ -56,7 +56,11 @@ class RM_Audio_Playlist_Acf {
 						'label'         => __( 'Playlist artwork', 'rm-audio-playlist' ),
 						'name'          => self::ARTWORK_KEY,
 						'type'          => 'image',
-						'instructions'  => __( 'Square cover image shown on the public player (optional).', 'rm-audio-playlist' ),
+						'instructions'  => sprintf(
+							/* translators: %s: folder basename, e.g. rm-audio-playlist. */
+							__( 'Square cover image for the public player (optional). New uploads from this screen are stored under wp-content/uploads/%s/{playlist ID}/ alongside tracks.', 'rm-audio-playlist' ),
+							RM_Audio_Playlist_Upload_Dir::SUBDIR
+						),
 						'required'      => 0,
 						'return_format' => 'id',
 						'preview_size'  => 'medium',
@@ -68,7 +72,11 @@ class RM_Audio_Playlist_Acf {
 						'label'        => __( 'Tracks', 'rm-audio-playlist' ),
 						'name'         => self::REPEATER,
 						'type'         => 'repeater',
-						'instructions' => __( 'Add files in play order. Only MP3 files are allowed in the uploader (plugin whitelist).', 'rm-audio-playlist' ),
+						'instructions' => sprintf(
+							/* translators: %s: folder basename, e.g. rm-audio-playlist. */
+							__( 'Add files in play order. New MP3 uploads from this playlist screen are stored under wp-content/uploads/%s/{playlist ID}/ (no dated folders). Uploads from other screens are unchanged. Only MP3 files are allowed (plugin whitelist).', 'rm-audio-playlist' ),
+							RM_Audio_Playlist_Upload_Dir::SUBDIR
+						),
 						'required'     => 0,
 						'layout'       => 'row',
 						'button_label' => __( 'Add track', 'rm-audio-playlist' ),

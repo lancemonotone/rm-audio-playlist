@@ -91,7 +91,7 @@ class RM_Audio_Playlist_Frontend {
 	/**
 	 * Build JSON-safe track list for a playlist post.
 	 *
-	 * @return array{title:string,tracks:array<int, array{url:string,title:string,downloadable?:bool,downloadName?:string}>,artworkUrl?:string,artworkAlt?:string}|\WP_Error
+	 * @return array{title:string,tracks:array<int, array{url:string,title:string,downloadable?:bool,downloadName?:string}>,artworkUrl?:string,artworkThumbUrl?:string,artworkAlt?:string}|\WP_Error
 	 */
 	public static function get_playlist_payload( int $post_id ) {
 		$post = get_post( $post_id );
@@ -105,18 +105,24 @@ class RM_Audio_Playlist_Frontend {
 		$title = self::plaintext_for_display( (string) get_post_field( 'post_title', $post_id, 'raw' ) );
 		$tracks = array();
 
-		$artwork_url = '';
-		$artwork_alt = '';
+		$artwork_url       = '';
+		$artwork_thumb_url = '';
+		$artwork_alt       = '';
 		if ( function_exists( 'get_field' ) ) {
 			$artwork_id = (int) get_field( RM_Audio_Playlist_Acf::ARTWORK_KEY, $post_id );
 			if ( $artwork_id > 0 && wp_attachment_is_image( $artwork_id ) ) {
-				$img_url = wp_get_attachment_image_url( $artwork_id, 'medium' );
-				if ( ! $img_url ) {
-					$img_url = wp_get_attachment_url( $artwork_id );
+				$full_url  = wp_get_attachment_image_url( $artwork_id, 'full' );
+				$thumb_url = wp_get_attachment_image_url( $artwork_id, 'medium' );
+				if ( ! $full_url ) {
+					$full_url = wp_get_attachment_url( $artwork_id );
 				}
-				if ( $img_url ) {
-					$artwork_url = (string) $img_url;
-					$artwork_alt = trim( self::plaintext_for_display( (string) get_post_meta( $artwork_id, '_wp_attachment_image_alt', true ) ) );
+				if ( ! $thumb_url ) {
+					$thumb_url = $full_url;
+				}
+				if ( $full_url ) {
+					$artwork_url       = (string) $full_url;
+					$artwork_thumb_url = (string) $thumb_url;
+					$artwork_alt       = trim( self::plaintext_for_display( (string) get_post_meta( $artwork_id, '_wp_attachment_image_alt', true ) ) );
 					if ( '' === $artwork_alt ) {
 						$artwork_alt = $title;
 					}
@@ -172,6 +178,9 @@ class RM_Audio_Playlist_Frontend {
 		if ( '' !== $artwork_url ) {
 			$out['artworkUrl'] = $artwork_url;
 			$out['artworkAlt'] = $artwork_alt;
+			if ( '' !== $artwork_thumb_url && $artwork_thumb_url !== $artwork_url ) {
+				$out['artworkThumbUrl'] = $artwork_thumb_url;
+			}
 		}
 		return $out;
 	}

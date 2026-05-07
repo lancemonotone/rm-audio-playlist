@@ -32,6 +32,8 @@
 		dl: '<svg class="rm-audio-playlist__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>',
 		grip:
 			'<svg class="rm-audio-playlist__icon rm-audio-playlist__icon--grip" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><circle cx="9" cy="6" r="1.35"/><circle cx="15" cy="6" r="1.35"/><circle cx="9" cy="12" r="1.35"/><circle cx="15" cy="12" r="1.35"/><circle cx="9" cy="18" r="1.35"/><circle cx="15" cy="18" r="1.35"/></svg>',
+		close:
+			'<svg class="rm-audio-playlist__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" focusable="false"><path d="M18 6L6 18M6 6l12 12"/></svg>',
 	};
 
 	function rptSvg(mode) {
@@ -85,7 +87,8 @@
 	 * @param {object} data
 	 * @param {string} data.title
 	 * @param {Array<{url:string, title:string, downloadable?: boolean, downloadName?: string}>} data.tracks
-	 * @param {string} [data.artworkUrl]
+	 * @param {string} [data.artworkUrl] Full-size image (lightbox).
+	 * @param {string} [data.artworkThumbUrl] Smaller image for the cover chip (optional).
 	 * @param {string} [data.artworkAlt]
 	 */
 	function PlayerBlock(el, data) {
@@ -93,6 +96,10 @@
 		this.tracks = data.tracks;
 		this.playlistTitle = data.title;
 		this.artworkUrl = typeof data.artworkUrl === 'string' ? data.artworkUrl : '';
+		this.artworkThumbUrl =
+			typeof data.artworkThumbUrl === 'string' && data.artworkThumbUrl !== ''
+				? data.artworkThumbUrl
+				: this.artworkUrl;
 		this.artworkAlt = typeof data.artworkAlt === 'string' ? data.artworkAlt : '';
 		if (!this.tracks || !this.tracks.length) {
 			return;
@@ -103,12 +110,16 @@
 		this.oi = 0;
 		this.repeat = 'none';
 		this.shuffle = false;
+		/* True once the user has actually started playback (used for shuffle UX). */
+		this._userStarted = false;
 		this.audio = new Audio();
-		this.audio.preload = 'metadata';
+		this.audio.preload = 'auto';
 		/* Web Audio: required for cross-origin MP3 analysis (same-origin uploads are fine). */
 		this.audio.crossOrigin = 'anonymous';
 		this._bind = this._onKeydown.bind(this);
 		this._errTimer = 0;
+		this._loadWatchdogTimer = 0;
+		this._statusDismissTimer = 0;
 		this._floatTip = null;
 		this._floatTipTarget = null;
 		this._tipHideTimer = 0;
@@ -126,8 +137,36 @@
 		this._waveResizeObs = null;
 		this._floatTipFromKeyboard = false;
 		this._focusTipTimer = 0;
+		/*
+		 * Track-advance guard: multiple events (ended, near-end, error, timeout) can try to advance.
+		 * We increment _advToken on each _load() and allow at most one advance per token.
+		 */
+		this._advToken = 0;
+		this._advLockedToken = -1;
+		this._loadRetryToken = -1;
+		this._timeoutRetryToken = -1;
 		this._build();
 	}
+
+	PlayerBlock.prototype._clearAdvanceTimers = function () {
+		if (this._errTimer) {
+			clearTimeout(this._errTimer);
+			this._errTimer = 0;
+		}
+		if (this._loadWatchdogTimer) {
+			clearTimeout(this._loadWatchdogTimer);
+			this._loadWatchdogTimer = 0;
+		}
+	};
+
+	PlayerBlock.prototype._advanceOnce = function (nextOrderIndex) {
+		if (this._advLockedToken === this._advToken) {
+			return;
+		}
+		this._advLockedToken = this._advToken;
+		this._clearAdvanceTimers();
+		this._load(nextOrderIndex, true);
+	};
 
 	PlayerBlock.prototype._build = function () {
 		var self = this;
@@ -148,17 +187,80 @@
 		this._status = status;
 
 		var top = _create('div', 'rm-audio-playlist__top', '');
-		var art = _create('div', 'rm-audio-playlist__art', '');
+		self._artBtn = null;
+		self._lightbox = null;
+		self._boundLightboxEsc = null;
+		var art;
 		if (self.artworkUrl) {
-			art.classList.add('rm-audio-playlist__art--has-image');
+			art = document.createElement('button');
+			art.type = 'button';
+			art.className = 'rm-audio-playlist__art rm-audio-playlist__art--has-image';
+			art.setAttribute('aria-label', 'View full-size playlist artwork');
 			var artImg = document.createElement('img');
 			artImg.className = 'rm-audio-playlist__art-img';
-			artImg.src = self.artworkUrl;
+			artImg.src = self.artworkThumbUrl;
 			artImg.alt = self.artworkAlt || self.playlistTitle || '';
 			artImg.loading = 'lazy';
 			artImg.decoding = 'async';
 			art.appendChild(artImg);
+			self._artBtn = art;
+
+			var lb = document.createElement('div');
+			lb.className = 'rm-audio-playlist__lightbox';
+			lb.setAttribute('hidden', '');
+			lb.setAttribute('role', 'dialog');
+			lb.setAttribute('aria-modal', 'true');
+			lb.setAttribute(
+				'aria-label',
+				self.artworkAlt || self.playlistTitle
+					? 'Artwork: ' + (self.artworkAlt || self.playlistTitle)
+					: 'Playlist artwork'
+			);
+			var bd = document.createElement('div');
+			bd.className = 'rm-audio-playlist__lightbox-backdrop';
+			lb.appendChild(bd);
+			var closeBtn = document.createElement('button');
+			closeBtn.type = 'button';
+			closeBtn.className = 'rm-audio-playlist__lightbox-close';
+			closeBtn.setAttribute('aria-label', 'Close');
+			closeBtn.appendChild(_svg(SVG.close));
+			lb.appendChild(closeBtn);
+			var lbContent = document.createElement('div');
+			lbContent.className = 'rm-audio-playlist__lightbox-content';
+			var lbImg = document.createElement('img');
+			lbImg.className = 'rm-audio-playlist__lightbox-img';
+			lbImg.src = self.artworkUrl;
+			lbImg.alt = self.artworkAlt || self.playlistTitle || '';
+			lbContent.appendChild(lbImg);
+			if (self.playlistTitle) {
+				lbContent.appendChild(
+					_create('p', 'rm-audio-playlist__lightbox-cap', self.playlistTitle)
+				);
+			}
+			lb.appendChild(lbContent);
+			self.root.appendChild(lb);
+			self._lightbox = lb;
+
+			self._boundLightboxEsc = function (e) {
+				if (!self._lightbox || self._lightbox.hasAttribute('hidden')) {
+					return;
+				}
+				if (e.key === 'Escape') {
+					self._closeArtLightbox();
+					e.preventDefault();
+				}
+			};
+			bd.addEventListener('click', function () {
+				self._closeArtLightbox();
+			});
+			closeBtn.addEventListener('click', function () {
+				self._closeArtLightbox();
+			});
+			art.addEventListener('click', function () {
+				self._openArtLightbox();
+			});
 		} else {
+			art = _create('div', 'rm-audio-playlist__art', '');
 			art.setAttribute('aria-hidden', 'true');
 		}
 		var headlines = _create('div', 'rm-audio-playlist__headlines', '');
@@ -867,8 +969,33 @@
 
 	PlayerBlock.prototype._wireAudio = function () {
 		var self = this;
+		function clearWatchdog() {
+			if (self._loadWatchdogTimer) {
+				clearTimeout(self._loadWatchdogTimer);
+				self._loadWatchdogTimer = 0;
+			}
+		}
 		this.audio.addEventListener('timeupdate', function () {
 			self._tick();
+			/*
+			 * Near-end watchdog: some browsers/devices occasionally miss "ended".
+			 * If we're within ε seconds of the end, advance once.
+			 */
+			if (self.repeat === 'one') {
+				return;
+			}
+			var d = self.audio.duration;
+			if (!isFinite(d) || d <= 0 || self.audio.seeking) {
+				return;
+			}
+			var eps = 0.25;
+			if (self.audio.currentTime >= d - eps) {
+				if (self.oi < self.order.length - 1) {
+					self._advanceOnce(self.oi + 1);
+				} else if (self.repeat === 'all') {
+					self._advanceOnce(0);
+				}
+			}
 		});
 		this.audio.addEventListener('loadedmetadata', function () {
 			self._tDur.textContent = _fmtTime(self.audio.duration);
@@ -884,7 +1011,11 @@
 			self._setPlayStateUi(false);
 			self._stopWaveformLoop();
 		});
+		this.audio.addEventListener('canplay', function () {
+			clearWatchdog();
+		});
 		this.audio.addEventListener('playing', function () {
+			clearWatchdog();
 			if (self._status && (self._status.textContent === 'Loading…' || self._status.textContent === 'Buffering…')) {
 				self._setStatus('');
 			}
@@ -903,31 +1034,59 @@
 				return;
 			}
 			if (self.oi < self.order.length - 1) {
-				self._load(self.oi + 1, true);
+				self._advanceOnce(self.oi + 1);
 				return;
 			}
 			if (self.repeat === 'all') {
-				self._load(0, true);
+				self._advanceOnce(0);
 			} else {
-				self._setStatus('Finished.');
+				self._setStatus('Finished.', 5000);
 			}
 		});
 		this.audio.addEventListener('error', function () {
-			self._setStatus('This track could not be loaded. Skipping in 1s or use next.');
-			var errT = setTimeout(function () {
-				if (self.oi < self.order.length - 1) {
-					self._load(self.oi + 1, true);
-				} else {
-					self._setStatus('No more tracks to play.');
+			/*
+			 * Error strategy:
+			 * - Retry the same track once per load token (transient network/decode hiccups).
+			 * - If it still fails, skip (guarded so we don't double-advance).
+			 */
+			clearWatchdog();
+			if (self._loadRetryToken !== self._advToken) {
+				self._loadRetryToken = self._advToken;
+				self._setStatus('Trouble loading this track. Retrying…');
+				try {
+					self.audio.load();
+					var p = self.audio.play();
+					if (p && p.catch) p.catch(function () {});
+				} catch (e) {
+					/* ignore */
 				}
-			}, 1000);
-			self._errTimer = errT;
+				return;
+			}
+			self._setStatus('This track could not be loaded. Skipping…');
+			self._errTimer = setTimeout(function () {
+				self._errTimer = 0;
+				if (self.repeat === 'one') {
+					self._setStatus('This track could not be loaded.', 5000);
+					return;
+				}
+				if (self.oi < self.order.length - 1) {
+					self._advanceOnce(self.oi + 1);
+				} else if (self.repeat === 'all') {
+					self._advanceOnce(0);
+				} else {
+					self._setStatus('No more tracks to play.', 5000);
+				}
+			}, 2500);
 		});
 		this.audio.addEventListener('waiting', function () {
 			self._setStatus('Buffering…');
 		});
 		this.audio.addEventListener('canplay', function () {
-			if (self._status && self._status.textContent === 'Buffering…') {
+			/* Ready to play (may still be paused). Clears “Loading…” from _load(..., false) on first paint. */
+			if (
+				self._status &&
+				(self._status.textContent === 'Buffering…' || self._status.textContent === 'Loading…')
+			) {
 				self._setStatus('');
 			}
 		});
@@ -1219,13 +1378,24 @@
 		if (this.shuffle) {
 			var curT = this.order[this.oi];
 			this.order = _shuffle(this.tracks.length);
-			var at = this.order.indexOf(curT);
-			if (at > 0) {
-				var tmp = this.order[0];
-				this.order[0] = this.order[at];
-				this.order[at] = tmp;
+			/*
+			 * If shuffle is enabled before the user has actually started playback, we should let the
+			 * first track be randomized too. Once playback has started (or the user has progressed),
+			 * keep the current track pinned as the first item so shuffle doesn't interrupt them.
+			 */
+			if (this._userStarted) {
+				var at = this.order.indexOf(curT);
+				if (at > 0) {
+					var tmp = this.order[0];
+					this.order[0] = this.order[at];
+					this.order[at] = tmp;
+				}
+				this.oi = 0;
+			} else {
+				// Start at the first item of the new shuffled order.
+				this.oi = 0;
+				this._load(this.oi, false);
 			}
-			this.oi = 0;
 		} else {
 			var playingTid = this.order[this.oi];
 			this.order = this.tracks.map(function (_, i) {
@@ -1259,10 +1429,11 @@
 
 	PlayerBlock.prototype._load = function (orderIndex, autoPlay) {
 		var self = this;
-		if (this._errTimer) {
-			clearTimeout(this._errTimer);
-			this._errTimer = 0;
-		}
+		this._clearAdvanceTimers();
+		this._advToken += 1;
+		this._advLockedToken = -1;
+		this._loadRetryToken = -1;
+		this._timeoutRetryToken = -1;
 		this.oi = orderIndex;
 		if (this.oi < 0) {
 			this.oi = 0;
@@ -1283,7 +1454,44 @@
 		this._setStatus('Loading…');
 		this._setPlayStateUi(false);
 		this.audio.load();
+		/*
+		 * Load timeout watchdog: if we never reach canplay/playing, retry once, then skip.
+		 * (Prevents “Loading…” hanging indefinitely.)
+		 */
+		var token = this._advToken;
+		function watchdogTick() {
+			if (self._advToken !== token) {
+				return;
+			}
+			self._loadWatchdogTimer = 0;
+			if (self._timeoutRetryToken !== token) {
+				self._timeoutRetryToken = token;
+				self._setStatus('Still loading… retrying.');
+				try {
+					self.audio.load();
+					if (autoPlay) {
+						var p = self.audio.play();
+						if (p && p.catch) p.catch(function () {});
+					}
+				} catch (e) {
+					/* ignore */
+				}
+				self._loadWatchdogTimer = setTimeout(watchdogTick, 15000);
+				return;
+			}
+			self._setStatus('Taking too long to load. Skipping…');
+			if (self.repeat === 'one') {
+				return;
+			}
+			if (self.oi < self.order.length - 1) {
+				self._advanceOnce(self.oi + 1);
+			} else if (self.repeat === 'all') {
+				self._advanceOnce(0);
+			}
+		}
+		this._loadWatchdogTimer = setTimeout(watchdogTick, 15000);
 		if (autoPlay) {
+			this._userStarted = true;
 			var pl = this.audio.play();
 			if (pl && pl.catch) {
 				pl.catch(function () {
@@ -1328,7 +1536,7 @@
 		} else if (this.repeat === 'all') {
 			this._load(0, true);
 		} else {
-			this._setStatus('End of list.');
+			this._setStatus('End of list.', 5000);
 		}
 	};
 
@@ -1346,6 +1554,7 @@
 
 	PlayerBlock.prototype._toggle = function () {
 		if (this.audio.paused) {
+			this._userStarted = true;
 			this._setStatus('');
 			var p = this.audio.play();
 			if (p && p.catch) {
@@ -1356,9 +1565,56 @@
 		}
 	};
 
-	PlayerBlock.prototype._setStatus = function (s) {
+	PlayerBlock.prototype._openArtLightbox = function () {
+		if (!this._lightbox) {
+			return;
+		}
+		this._lightbox.removeAttribute('hidden');
+		document.body.style.overflow = 'hidden';
+		document.addEventListener('keydown', this._boundLightboxEsc, true);
+		var c = this._lightbox.querySelector('.rm-audio-playlist__lightbox-close');
+		if (c) {
+			c.focus();
+		}
+	};
+
+	PlayerBlock.prototype._closeArtLightbox = function () {
+		if (!this._lightbox || this._lightbox.hasAttribute('hidden')) {
+			return;
+		}
+		this._lightbox.setAttribute('hidden', '');
+		document.body.style.overflow = '';
+		document.removeEventListener('keydown', this._boundLightboxEsc, true);
+		if (this._artBtn) {
+			try {
+				this._artBtn.focus();
+			} catch (err) {
+				/* ignore */
+			}
+		}
+	};
+
+	/**
+	 * @param {string} s Status text; empty hides the line (see CSS :empty).
+	 * @param {number} [dismissAfterMs] If set, clear this message after N ms if unchanged (ephemeral feedback).
+	 */
+	PlayerBlock.prototype._setStatus = function (s, dismissAfterMs) {
+		if (this._statusDismissTimer) {
+			clearTimeout(this._statusDismissTimer);
+			this._statusDismissTimer = 0;
+		}
 		if (this._status) {
 			this._status.textContent = s;
+		}
+		if (dismissAfterMs && dismissAfterMs > 0 && s) {
+			var self = this;
+			var captured = s;
+			this._statusDismissTimer = setTimeout(function () {
+				self._statusDismissTimer = 0;
+				if (self._status && self._status.textContent === captured) {
+					self._setStatus('');
+				}
+			}, dismissAfterMs);
 		}
 	};
 
