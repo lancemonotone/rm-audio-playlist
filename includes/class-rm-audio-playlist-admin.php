@@ -30,7 +30,7 @@ class RM_Audio_Playlist_Admin {
 	}
 
 	/**
-	 * After ACF saves, set empty track titles from the MP3 attachment filename (stem only).
+	 * After ACF saves, set empty track titles from embedded ID3 tags when readable, else the file stem.
 	 *
 	 * @param int|string $post_id Post ID or 'options'.
 	 */
@@ -83,8 +83,8 @@ class RM_Audio_Playlist_Admin {
 					++$row_num;
 					continue;
 				}
-				$stem = self::attachment_filename_stem( $file_id );
-				if ( '' === $stem ) {
+				$suggested = self::suggested_track_title_for_attachment( $file_id );
+				if ( '' === $suggested ) {
 					++$row_num;
 					continue;
 				}
@@ -94,7 +94,7 @@ class RM_Audio_Playlist_Admin {
 						$row_num,
 						RM_Audio_Playlist_Acf::TITLE_KEY,
 					),
-					$stem,
+					$suggested,
 					$post_id
 				);
 				++$row_num;
@@ -102,6 +102,69 @@ class RM_Audio_Playlist_Admin {
 		} finally {
 			$running = false;
 		}
+	}
+
+	/**
+	 * Default label for an empty track title: ID3 artist/title when present, else filename stem.
+	 */
+	private static function suggested_track_title_for_attachment( int $file_id ): string {
+		$from_tags = self::track_title_from_id3_tags( $file_id );
+		if ( '' !== $from_tags ) {
+			return $from_tags;
+		}
+		return self::attachment_filename_stem( $file_id );
+	}
+
+	/**
+	 * Build a display title from WordPress audio metadata (getID3): "Artist - Title", title-only, or artist-only.
+	 *
+	 * @return string Empty if no usable tag text (caller falls back to filename stem).
+	 */
+	private static function track_title_from_id3_tags( int $file_id ): string {
+		if ( ! function_exists( 'wp_read_audio_metadata' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/media.php';
+		}
+		$path = get_attached_file( $file_id );
+		if ( ! is_string( $path ) || $path === '' || ! is_readable( $path ) ) {
+			return '';
+		}
+		$meta = wp_read_audio_metadata( $path );
+		if ( ! is_array( $meta ) ) {
+			return '';
+		}
+		$artist = '';
+		if ( isset( $meta['artist'] ) && is_string( $meta['artist'] ) ) {
+			$artist = self::normalize_track_label_piece( $meta['artist'] );
+		}
+		if ( '' === $artist && isset( $meta['band'] ) && is_string( $meta['band'] ) ) {
+			$artist = self::normalize_track_label_piece( $meta['band'] );
+		}
+		$title = isset( $meta['title'] ) && is_string( $meta['title'] )
+			? self::normalize_track_label_piece( $meta['title'] )
+			: '';
+		if ( '' !== $artist && '' !== $title ) {
+			return $artist . ' - ' . $title;
+		}
+		if ( '' !== $title ) {
+			return $title;
+		}
+		if ( '' !== $artist ) {
+			return $artist;
+		}
+		return '';
+	}
+
+	/**
+	 * Single-line text from tag values for storage/display.
+	 */
+	private static function normalize_track_label_piece( string $raw ): string {
+		$s = wp_strip_all_tags( $raw );
+		$s = wp_specialchars_decode( $s, ENT_QUOTES );
+		$s = preg_replace( '/\s+/u', ' ', $s );
+		if ( ! is_string( $s ) ) {
+			return '';
+		}
+		return trim( $s );
 	}
 
 	/**

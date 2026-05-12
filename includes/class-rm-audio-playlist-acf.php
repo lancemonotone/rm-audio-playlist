@@ -97,7 +97,7 @@ class RM_Audio_Playlist_Acf {
 								'name'         => self::TITLE_KEY,
 								'type'         => 'text',
 								'required'     => 0,
-								'instructions' => __( 'Overrides the attachment title on the public player. If left empty, it is filled from the MP3 filename when you save.', 'rm-audio-playlist' ),
+								'instructions' => __( 'Overrides the attachment title on the public player. If left empty, it is filled on save from embedded MP3 tags when available (Artist - Title if both exist), otherwise from the filename.', 'rm-audio-playlist' ),
 							),
 							array(
 								'key'           => 'field_rm_pl_downloadable',
