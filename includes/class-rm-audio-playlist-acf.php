@@ -23,6 +23,10 @@ class RM_Audio_Playlist_Acf {
 	public const ARTWORK_KEY     = 'rm_pl_artwork';
 	/** ACF message field: UI only, no stored value (shortcode panel rendered via acf/render_field). */
 	public const SHORTCODE_PANEL_FIELD_KEY = 'field_rm_pl_shortcode_panel';
+	/** ACF message fields: UI only (rendered via acf/render_field), one row of columns. */
+	public const CLEAR_TRACKS_DESC_FIELD_KEY    = 'field_rm_pl_clear_tracks_desc';
+	public const CLEAR_TRACKS_ACTION_FIELD_KEY  = 'field_rm_pl_clear_tracks_action';
+	public const DOWNLOAD_ALL_FIELD_KEY         = 'field_rm_pl_download_all';
 	public const KEY_PREFIX = 'group_rm_pl_';
 
 	/**
@@ -66,6 +70,45 @@ class RM_Audio_Playlist_Acf {
 						'preview_size'  => 'medium',
 						'library'       => 'all',
 						'mime_types'    => 'jpg,jpeg,png,webp,gif',
+					),
+					array(
+						'key'           => self::CLEAR_TRACKS_DESC_FIELD_KEY,
+						'label'         => __( 'Reset tracks', 'rm-audio-playlist' ),
+						'name'          => '',
+						'type'          => 'message',
+						'message'       => '',
+						'new_lines'     => '',
+						'esc_html'      => 0,
+						'wrapper'       => array(
+							'width' => '50',
+							'class' => 'rm-pl-toolbar-col rm-pl-toolbar-col--desc',
+						),
+					),
+					array(
+						'key'           => self::CLEAR_TRACKS_ACTION_FIELD_KEY,
+						'label'         => __( 'Remove MP3s', 'rm-audio-playlist' ),
+						'name'          => '',
+						'type'          => 'message',
+						'message'       => '',
+						'new_lines'     => '',
+						'esc_html'      => 0,
+						'wrapper'       => array(
+							'width' => '25',
+							'class' => 'rm-pl-toolbar-col rm-pl-toolbar-col--clear',
+						),
+					),
+					array(
+						'key'           => self::DOWNLOAD_ALL_FIELD_KEY,
+						'label'         => __( 'Allow download all', 'rm-audio-playlist' ),
+						'name'          => '',
+						'type'          => 'message',
+						'message'       => '',
+						'new_lines'     => '',
+						'esc_html'      => 0,
+						'wrapper'       => array(
+							'width' => '25',
+							'class' => 'rm-pl-toolbar-col rm-pl-toolbar-col--download',
+						),
 					),
 					array(
 						'key'          => 'field_rm_pl_tracks',
