@@ -1,7 +1,7 @@
 <?php
 
 /**
- * ACF block: embed playlist in the block editor (requires ACF Pro).
+ * ACF block: embed playlist in the block editor (requires ACF Pro?).
  *
  * @package rm-audio-playlist
  */
@@ -71,8 +71,8 @@ class RM_Audio_Playlist_Block {
 				'keywords'          => array('audio', 'playlist', 'music', 'mp3', 'rm'),
 				// ACF block API v2; use auto so the canvas shows preview by default and the field form when
 				// the block is focused, with the toolbar control to switch preview ↔ edit.
-				'acf_block_version' => 2,
-				'mode'              => 'preview',
+				'api_version'       => 3,
+				'acf_block_version' => 3,
 				'supports'          => array(
 					// ACF block supports: keep boolean align (ACF-safe) and enable text alignment separately.
 					// Wide/full options are provided by the editor when the active theme supports them.
@@ -134,6 +134,9 @@ class RM_Audio_Playlist_Block {
 	/**
 	 * Block output (front end and editor preview).
 	 *
+	 * Same outer section landmark as other page-body blocks. Width shell for Music
+	 * (and other non–front pages) comes from the theme `.container.entry` wrap.
+	 *
 	 * @param array<string, mixed> $block      Block settings.
 	 * @param string               $content    Inner blocks / HTML.
 	 * @param bool                 $is_preview Editor preview.
@@ -152,11 +155,49 @@ class RM_Audio_Playlist_Block {
 			return;
 		}
 
-		$extra = '';
-		if (is_array($block) && ! empty($block['className'])) {
-			$extra = (string) $block['className'];
+		$block = is_array($block) ? $block : array();
+		self::open_shell($block);
+		echo RM_Audio_Playlist_Frontend::render($id); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- markup built with escaping in render().
+		echo '</section>';
+	}
+
+	/**
+	 * Open section landmark with layout class + block supports (anchor / className).
+	 *
+	 * Non–front-page views: theme `main.php` owns `.container.entry`. Do not nest another
+	 * `.container` here (Music page and similar).
+	 *
+	 * @param array<string, mixed> $block Block instance.
+	 */
+	private static function open_shell(array $block): void {
+		$classes = array(
+			'audio',
+		);
+
+		if (! empty($block['className'])) {
+			foreach (array_filter(explode(' ', (string) $block['className'])) as $cn) {
+				$classes[] = sanitize_html_class($cn);
+			}
 		}
 
-		echo RM_Audio_Playlist_Frontend::render($id, $extra); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- markup built with escaping in render().
+		$class_string = implode(' ', array_map('sanitize_html_class', $classes));
+
+		// get_block_wrapper_attributes() requires WP_Block_Supports::$block_to_render.
+		// ACF editor preview can run templates without that context.
+		if (is_array(\WP_Block_Supports::$block_to_render)) {
+			$wrapper_attrs = get_block_wrapper_attributes(
+				array(
+					'class' => $class_string,
+				)
+			);
+		} else {
+			$parts = array('class="' . esc_attr($class_string) . '"');
+			if (! empty($block['anchor'])) {
+				$parts[] = 'id="' . esc_attr((string) $block['anchor']) . '"';
+			}
+			$wrapper_attrs = implode(' ', $parts);
+		}
+
+		echo '<section ' . $wrapper_attrs . '>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 	}
 }

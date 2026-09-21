@@ -6,9 +6,17 @@
   --rm-border: #e3e0d8;
   --rm-text: #121212;
   --rm-muted: #5f5d59;
-  --rm-accent: #0d6e5c;
-  --rm-accent-2: #0a5a4b;
-  --rm-glow: rgba(13, 110, 92, 0.12);
+  /*
+   * Accent inherits theme `--accent` when the host theme defines it
+   * (e.g. on :root). `var(--accent, …)` only uses the second argument
+   * if `--accent` is missing or invalid — so standalone installs keep
+   * the plugin teal, and themed sites (rm-portfolio, etc.) match brand.
+   * `--rm-accent-2` / `--rm-glow` derive from `--rm-accent` so both
+   * paths stay in sync without a second theme token.
+   */
+  --rm-accent: var(--accent, #0d6e5c);
+  --rm-accent-2: color-mix(in srgb, var(--rm-accent) 78%, #000);
+  --rm-glow: color-mix(in srgb, var(--rm-accent) 12%, transparent);
   --rm-radius: 16px;
   --rm-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 32px rgba(0, 0, 0, 0.06);
   --rm-tip-bg: #1a1a18;
@@ -30,6 +38,7 @@
   padding-inline: var(--rm-pad-inline);
   padding-block-end: var(--rm-pad-be);
   max-inline-size: 28rem;
+  margin-inline: auto;
   font-family:
     system-ui,
     -apple-system,
@@ -46,9 +55,10 @@
     --rm-border: #2e2e2a;
     --rm-text: #f2f1ee;
     --rm-muted: #a8a6a0;
-    --rm-accent: #3ecfae;
-    --rm-accent-2: #5edcc0;
-    --rm-glow: rgba(62, 207, 174, 0.15);
+    /* Same theme `--accent` preference; teal fallback for dark-only installs. */
+    --rm-accent: var(--accent, #3ecfae);
+    --rm-accent-2: color-mix(in srgb, var(--rm-accent) 72%, #fff);
+    --rm-glow: color-mix(in srgb, var(--rm-accent) 15%, transparent);
     --rm-shadow:
       0 1px 0 rgba(255, 255, 255, 0.04), 0 12px 40px rgba(0, 0, 0, 0.4);
     --rm-tip-bg: #f0efe8;
@@ -639,11 +649,7 @@
   }
 
   & .rm-audio-pl-rpt.is-active-one {
-    color: #8b5cf6;
-
-    @media (prefers-color-scheme: dark) {
-      color: #a78bfa;
-    }
+    color: var(--rm-accent);
   }
 
   & .rm-audio-playlist__field {
@@ -667,16 +673,41 @@
   }
 
   & .rm-audio-playlist__select {
+    /* Explicit resets: host themes often style bare `select` as tall form fields. */
+    display: inline-block;
+    box-sizing: border-box;
+    appearance: none;
+    -webkit-appearance: none;
+    inline-size: auto;
+    min-block-size: 0;
+    margin: 0;
     font: inherit;
     font-size: 0.8rem;
+    line-height: 1.2;
     padding-block: 0.3rem;
-    padding-inline: 0.45rem;
+    padding-inline: 0.45rem 1.35rem;
     border: 1px solid var(--rm-border);
     border-radius: 8px;
-    background: var(--rm-surface);
+    background-color: var(--rm-surface);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath fill='%23a8a6a0' d='M1.2 2.2 6 7l4.8-4.8'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.45rem center;
+    background-size: 0.65rem 0.45rem;
     color: var(--rm-text);
     cursor: pointer;
     max-inline-size: 6.5rem;
+
+    &:focus,
+    &:focus-visible {
+      outline: none;
+    }
+
+    @media (forced-colors: active), (prefers-contrast: more) {
+      &:focus-visible {
+        outline: 2px solid CanvasText;
+        outline-offset: 2px;
+      }
+    }
   }
 
   & .rm-audio-playlist__volinner {
@@ -974,7 +1005,8 @@ body.page-template-page-template-full {
     --rm-playlist-radius: 0;
     --rm-playlist-border-w: 0;
     --rm-playlist-border-c: transparent;
-    --rm-playlist-padding-block-start: var(--wp-admin--admin-bar--height);
+    --rm-playlist-margin-block-start: var(--wp-admin--admin-bar--height, 0px);
+    --rm-playlist-padding-block-start: 1.5rem;
     --rm-playlist-padding-block-end: calc(1.5rem + env(safe-area-inset-bottom));
     --rm-playlist-padding-inline: 1.5rem;
 
@@ -985,7 +1017,8 @@ body.page-template-page-template-full {
     inline-size: var(--rm-playlist-inline-size);
     block-size: var(--rm-playlist-block-size);
     max-inline-size: var(--rm-playlist-max-inline-size) !important;
-    margin-block: 0 !important;
+    margin-block-start: var(--rm-playlist-margin-block-start);
+    margin-block-end: 0;
     margin-inline: 0 !important;
     border-radius: var(--rm-playlist-radius);
     border-inline: var(--rm-playlist-border-w) solid var(--rm-playlist-border-c);
@@ -998,18 +1031,20 @@ body.page-template-page-template-full {
       flex: unset;
       min-block-size: unset;
       overflow: visible;
+      --rm-playlist-inline-size: 100%;
       --rm-playlist-block-size: auto;
-      --rm-playlist-max-inline-size: 500px;
+      --rm-playlist-max-inline-size: 28rem;
       --rm-playlist-radius: 16px;
       --rm-playlist-border-w: 1px;
       --rm-playlist-border-c: var(--rm-border, #e3e0d8);
-      /* --rm-playlist-padding-block-start: 1.35rem; */
+      --rm-playlist-padding-block-start: 1.35rem;
       --rm-playlist-padding-block-end: 1.5rem;
       --rm-playlist-padding-inline: 1.5rem;
+      margin-inline: auto !important;
     }
 
     @media (min-width: 1024px) {
-      /* --rm-playlist-padding-block-start: 1.5rem; */
+      --rm-playlist-padding-block-start: 1.5rem;
       --rm-playlist-padding-block-end: 1.65rem;
       --rm-playlist-padding-inline: 1.65rem;
     }
