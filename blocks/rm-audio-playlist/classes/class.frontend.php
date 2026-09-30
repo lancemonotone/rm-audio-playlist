@@ -1,6 +1,6 @@
 <?php
 /**
- * Playlist payload + player markup (used by the ACF block template).
+ * Playlist payload + player markup for the audio playlist block.
  *
  * @package Rm_Audio_Playlist
  */
@@ -10,7 +10,7 @@ declare(strict_types=1);
 namespace Rm_Audio_Playlist;
 
 /**
- * Public playlist markup/payload helpers.
+ * Block-scoped playlist markup/payload helpers.
  */
 final class Frontend {
 
@@ -58,7 +58,7 @@ final class Frontend {
 		$artwork_thumb_url = '';
 		$artwork_alt       = '';
 		if ( function_exists( 'get_field' ) ) {
-			$artwork_id = (int) get_field( Acf::ARTWORK_KEY, $post_id );
+			$artwork_id = (int) get_field( Constants::ARTWORK_KEY, $post_id );
 			if ( $artwork_id > 0 && wp_attachment_is_image( $artwork_id ) ) {
 				$full_url  = wp_get_attachment_image_url( $artwork_id, 'full' );
 				$thumb_url = wp_get_attachment_image_url( $artwork_id, 'medium' );
@@ -79,13 +79,13 @@ final class Frontend {
 			}
 		}
 
-		$rows = function_exists( 'get_field' ) ? get_field( Acf::REPEATER, $post_id ) : null;
+		$rows = function_exists( 'get_field' ) ? get_field( Constants::REPEATER, $post_id ) : null;
 
 		if ( is_array( $rows ) ) {
 			foreach ( $rows as $row ) {
-				$file_id      = is_array( $row ) && isset( $row[ Acf::FILE_KEY ] ) ? (int) $row[ Acf::FILE_KEY ] : 0;
-				$override     = is_array( $row ) && ! empty( $row[ Acf::TITLE_KEY ] ) ? (string) $row[ Acf::TITLE_KEY ] : '';
-				$downloadable = is_array( $row ) && ! empty( $row[ Acf::DOWNLOADABLE_KEY ] );
+				$file_id      = is_array( $row ) && isset( $row[ Constants::FILE_KEY ] ) ? (int) $row[ Constants::FILE_KEY ] : 0;
+				$override     = is_array( $row ) && ! empty( $row[ Constants::TITLE_KEY ] ) ? (string) $row[ Constants::TITLE_KEY ] : '';
+				$downloadable = is_array( $row ) && ! empty( $row[ Constants::DOWNLOADABLE_KEY ] );
 				if ( $file_id <= 0 ) {
 					continue;
 				}
@@ -135,7 +135,7 @@ final class Frontend {
 	}
 
 	/**
-	 * Markup for one player instance (ACF block template).
+	 * Markup for one player instance.
 	 *
 	 * @param int    $id          Playlist post ID.
 	 * @param string $extra_class Extra CSS classes (sanitized as attribute).

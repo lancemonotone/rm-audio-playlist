@@ -23,17 +23,17 @@ final class Admin {
 		add_action('acf/input/admin_enqueue_scripts', array(self::class, 'enqueue_acf_scripts'));
 		add_action('acf/save_post', array(self::class, 'fill_empty_track_titles_on_save'), 20);
 		add_action(
-			'acf/render_field/key=' . Acf::CLEAR_TRACKS_DESC_FIELD_KEY,
+			'acf/render_field/key=' . Constants::CLEAR_TRACKS_DESC_FIELD_KEY,
 			array(self::class, 'render_clear_tracks_description'),
 			1
 		);
 		add_action(
-			'acf/render_field/key=' . Acf::CLEAR_TRACKS_ACTION_FIELD_KEY,
+			'acf/render_field/key=' . Constants::CLEAR_TRACKS_ACTION_FIELD_KEY,
 			array(self::class, 'render_clear_tracks_action'),
 			1
 		);
 		add_action(
-			'acf/render_field/key=' . Acf::DOWNLOAD_ALL_FIELD_KEY,
+			'acf/render_field/key=' . Constants::DOWNLOAD_ALL_FIELD_KEY,
 			array(self::class, 'render_download_all_toggle'),
 			1
 		);
@@ -157,7 +157,7 @@ final class Admin {
 	 * @return array{updated: int, downloadable: bool}
 	 */
 	public static function set_playlist_downloadable_all(int $post_id, bool $downloadable): array {
-		$rows = get_field(Acf::REPEATER, $post_id);
+		$rows = get_field(Constants::REPEATER, $post_id);
 		if (! is_array($rows)) {
 			$rows = array();
 		}
@@ -169,16 +169,16 @@ final class Admin {
 			if (! is_array($row)) {
 				continue;
 			}
-			$file_id = self::attachment_id_from_repeater_file_value($row[Acf::FILE_KEY] ?? null);
+			$file_id = self::attachment_id_from_repeater_file_value($row[Constants::FILE_KEY] ?? null);
 			if ($file_id <= 0) {
 				continue;
 			}
-			$rows[$index][Acf::DOWNLOADABLE_KEY] = $value;
+			$rows[$index][Constants::DOWNLOADABLE_KEY] = $value;
 			++$updated;
 		}
 
 		if ($updated > 0) {
-			update_field(Acf::REPEATER, $rows, $post_id);
+			update_field(Constants::REPEATER, $rows, $post_id);
 		}
 
 		return array(
@@ -193,7 +193,7 @@ final class Admin {
 	 * @return 'all'|'none'|'mixed'|'empty'
 	 */
 	private static function playlist_downloadable_bulk_state(int $post_id): string {
-		$rows = get_field(Acf::REPEATER, $post_id);
+		$rows = get_field(Constants::REPEATER, $post_id);
 		if (! is_array($rows) || $rows === array()) {
 			return 'empty';
 		}
@@ -205,12 +205,12 @@ final class Admin {
 			if (! is_array($row)) {
 				continue;
 			}
-			$file_id = self::attachment_id_from_repeater_file_value($row[Acf::FILE_KEY] ?? null);
+			$file_id = self::attachment_id_from_repeater_file_value($row[Constants::FILE_KEY] ?? null);
 			if ($file_id <= 0) {
 				continue;
 			}
 			++$with_file;
-			if (! empty($row[Acf::DOWNLOADABLE_KEY])) {
+			if (! empty($row[Constants::DOWNLOADABLE_KEY])) {
 				++$on;
 			}
 		}
@@ -237,7 +237,7 @@ final class Admin {
 		$skipped = array();
 		$errors  = array();
 
-		$rows = get_field(Acf::REPEATER, $post_id);
+		$rows = get_field(Constants::REPEATER, $post_id);
 		if (! is_array($rows)) {
 			$rows = array();
 		}
@@ -247,7 +247,7 @@ final class Admin {
 			if (! is_array($row)) {
 				continue;
 			}
-			$file_id = self::attachment_id_from_repeater_file_value($row[Acf::FILE_KEY] ?? null);
+			$file_id = self::attachment_id_from_repeater_file_value($row[Constants::FILE_KEY] ?? null);
 			if ($file_id > 0) {
 				$file_ids[$file_id] = true;
 			}
@@ -270,7 +270,7 @@ final class Admin {
 			}
 		}
 
-		update_field(Acf::REPEATER, array(), $post_id);
+		update_field(Constants::REPEATER, array(), $post_id);
 
 		return array(
 			'deleted' => $deleted,
@@ -340,7 +340,7 @@ final class Admin {
 			return;
 		}
 
-		$rows = get_field(Acf::REPEATER, $post_id);
+		$rows = get_field(Constants::REPEATER, $post_id);
 		if (! is_array($rows) || $rows === array()) {
 			return;
 		}
@@ -353,8 +353,8 @@ final class Admin {
 					++$row_num;
 					continue;
 				}
-				$file_id = self::attachment_id_from_repeater_file_value($row[Acf::FILE_KEY] ?? null);
-				$title = isset($row[Acf::TITLE_KEY]) ? trim((string) $row[Acf::TITLE_KEY]) : '';
+				$file_id = self::attachment_id_from_repeater_file_value($row[Constants::FILE_KEY] ?? null);
+				$title = isset($row[Constants::TITLE_KEY]) ? trim((string) $row[Constants::TITLE_KEY]) : '';
 				if ($file_id <= 0 || '' !== $title) {
 					++$row_num;
 					continue;
@@ -366,9 +366,9 @@ final class Admin {
 				}
 				update_sub_field(
 					array(
-						Acf::REPEATER,
+						Constants::REPEATER,
 						$row_num,
-						Acf::TITLE_KEY,
+						Constants::TITLE_KEY,
 					),
 					$suggested,
 					$post_id
