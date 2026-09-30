@@ -2,21 +2,24 @@
 /**
  * Audio playlist post type.
  *
- * @package rm-audio-playlist
+ * @package Rm_Audio_Playlist
  */
 
 declare(strict_types=1);
 
-if ( ! defined( 'ABSPATH' ) ) {
-	exit;
-}
+namespace Rm_Audio_Playlist;
 
 /**
- * Class RM_Audio_Playlist_Cpt
+ * Registers the playlist CPT and ACF missing notice.
  */
-class RM_Audio_Playlist_Cpt {
+final class Cpt {
 
 	public const POST_TYPE = 'rm_audio_playlist';
+
+	public function __construct() {
+		add_action( 'init', array( self::class, 'register' ) );
+		add_action( 'admin_notices', array( self::class, 'admin_notice_acf' ) );
+	}
 
 	/**
 	 * Register post type.
@@ -42,7 +45,7 @@ class RM_Audio_Playlist_Cpt {
 			'exclude_from_search' => true,
 			'show_ui'             => true,
 			'show_in_menu'        => true,
-			'menu_position'     => 26,
+			'menu_position'       => 26,
 			'menu_icon'           => 'dashicons-playlist-audio',
 			'capability_type'     => 'post',
 			'map_meta_cap'        => true,
@@ -74,3 +77,5 @@ class RM_Audio_Playlist_Cpt {
 		<?php
 	}
 }
+
+new Cpt();

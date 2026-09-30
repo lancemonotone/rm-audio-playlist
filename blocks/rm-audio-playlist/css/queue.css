@@ -1,0 +1,260 @@
+/* Keyboard help, queue, tooltips */
+
+.rm-audio-playlist {
+
+  /* Keyboard */
+  & .rm-audio-playlist__kbd {
+    margin-block: 0.6rem 0;
+    margin-inline: 0;
+    font-size: 0.8rem;
+    color: var(--rm-muted);
+  }
+
+  & .rm-audio-playlist__kbd-summary {
+    cursor: pointer;
+    font-weight: 500;
+  }
+
+  & .rm-audio-playlist__kbd-body {
+    margin-block-start: 0.4rem;
+    margin-inline: 0;
+    margin-block-end: 0;
+    line-height: 1.4;
+  }
+
+  /* Queue */
+  & .rm-audio-playlist__queue {
+    margin-block-start: 1rem;
+  }
+
+  & .rm-audio-playlist__queue-h {
+    margin: 0 0 0.45rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--rm-muted);
+  }
+
+  & .rm-audio-playlist__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-block-size: 11rem;
+    overflow-block: auto;
+    overflow-inline: hidden;
+    border: 1px solid var(--rm-border);
+    border-radius: 10px;
+    background: var(--rm-surface);
+    -webkit-overflow-scrolling: touch;
+  }
+
+  & .rm-audio-playlist__item {
+    display: flex;
+    align-items: stretch;
+    gap: 0.35rem;
+    border-block-end: 1px solid var(--rm-border);
+  }
+
+  & .rm-audio-playlist__item.is-dragging {
+    opacity: 0.55;
+  }
+
+  & .rm-audio-playlist__item.is-drag-over {
+    box-shadow: inset 0 3px 0 0 var(--rm-accent);
+  }
+
+  & .rm-audio-playlist__item-handle {
+    appearance: none;
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: 1.65rem;
+    padding-block: 0.35rem;
+    padding-inline-start: 0.2rem;
+    padding-inline-end: 0;
+    margin: 0;
+    border: 0;
+    background: transparent;
+    color: var(--rm-muted);
+    cursor: grab;
+    font: inherit;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none;
+  }
+
+  & .rm-audio-playlist__item-handle:active {
+    cursor: grabbing;
+  }
+
+  & .rm-audio-playlist__item-handle:disabled,
+  & .rm-audio-playlist__item-handle[draggable="false"] {
+    cursor: not-allowed;
+    opacity: 0.4;
+  }
+
+  & .rm-audio-playlist__icon--grip {
+    inline-size: 1.05rem;
+    block-size: 1.05rem;
+    display: block;
+  }
+
+  & .rm-audio-playlist__item:last-child {
+    border-block-end: 0;
+  }
+
+  & .rm-audio-playlist__item.is-current {
+    background: var(--rm-glow);
+  }
+
+  & .rm-audio-playlist__item-num {
+    flex-shrink: 0;
+    inline-size: 1.5rem;
+    text-align: center;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--rm-muted);
+    padding-block: 0.6rem;
+    padding-inline: 0;
+    font-variant-numeric: tabular-nums;
+  }
+
+  & .rm-audio-playlist__item-title {
+    flex: 1;
+    padding-block: 0.55rem;
+    padding-inline-start: 0;
+    padding-inline-end: 0.5rem;
+    color: var(--rm-text);
+    text-decoration: none;
+    font-size: 0.88rem;
+    line-height: 1.3;
+  }
+
+  & .rm-audio-playlist__item-title:hover,
+  & .rm-audio-playlist__item-title:focus-visible {
+    color: var(--rm-accent);
+    outline: none;
+  }
+
+  & .rm-audio-playlist__item.is-current .rm-audio-playlist__item-title {
+    font-weight: 600;
+  }
+
+  & .rm-audio-playlist__item-dl {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    inline-size: 2.25rem;
+    min-block-size: 2.5rem;
+    margin-inline-end: 0.2rem;
+    color: var(--rm-muted);
+    text-decoration: none;
+    opacity: 0;
+    pointer-events: none;
+    transition:
+      opacity 0.18s ease,
+      color 0.12s ease;
+
+    @media (prefers-reduced-motion: reduce) {
+      opacity: 1;
+      pointer-events: auto;
+    }
+  }
+
+  & .rm-audio-playlist__item:hover .rm-audio-playlist__item-dl,
+  & .rm-audio-playlist__item:focus-within .rm-audio-playlist__item-dl {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  & .rm-audio-playlist__item-dl:focus-visible {
+    opacity: 1;
+    pointer-events: auto;
+    outline: none;
+    color: var(--rm-accent);
+  }
+
+  & .rm-audio-playlist__item-dl:hover {
+    color: var(--rm-accent);
+  }
+
+  & .rm-audio-playlist__item-dl .rm-audio-playlist__icon {
+    inline-size: 1.1rem;
+    block-size: 1.1rem;
+    display: block;
+  }
+
+  /* ---- Tooltips: JS float layer only (follows pointer); no ::after ---- */
+  &.rm-audio-playlist--has-tip::after {
+    content: none !important;
+    display: none !important;
+  }
+
+  & .rm-audio-playlist__floattip {
+    position: fixed;
+    inset-inline-start: 0;
+    inset-block-start: 0;
+    z-index: 100000;
+    max-inline-size: min(16rem, 70vw);
+    padding-block: 0.5rem;
+    padding-inline: 0.65rem;
+    border-radius: var(--rm-tip-radius);
+    background: var(--rm-tip-bg);
+    color: var(--rm-tip-fg);
+    font-size: 0.72rem;
+    font-weight: 500;
+    line-height: 1.35;
+    text-align: start;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.18);
+    pointer-events: none;
+    opacity: 0;
+    visibility: hidden;
+    transform: translate3d(0, 0, 0);
+    transition:
+      opacity 0.2s ease,
+      transform 0.2s ease,
+      visibility 0s linear 0.2s;
+    /* Tooltips disabled (see JS flag): never show floating tooltip. */
+    display: none !important;
+
+    @media (prefers-reduced-motion: reduce) {
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  & .rm-audio-playlist__floattip.is-visible {
+    opacity: 1;
+    visibility: visible;
+    transition-delay: 0s;
+    transition-property: opacity, transform, visibility;
+  }
+
+  & .rm-audio-playlist__floattip.is-out {
+    opacity: 0;
+    visibility: visible;
+    transform: translate3d(0, 6px, 0);
+    transition:
+      opacity 0.22s ease,
+      transform 0.22s ease,
+      visibility 0s linear 0.22s;
+  }
+
+  /* Wrappers for volume/speed (flex around select, range) */
+  & .rm-audio-playlist__wrap {
+    display: inline-flex;
+    align-items: center;
+    min-inline-size: 0;
+    vertical-align: middle;
+  }
+
+  & .rm-audio-playlist__wrap--grow {
+    flex: 1;
+  }
+
+  & .rm-audio-playlist__field .rm-audio-playlist__wrap {
+    max-inline-size: 100%;
+  }
+}

@@ -1,5 +1,5 @@
 /**
- * RM Audio Playlist — admin: shortcode select, clear tracks, bulk allow download.
+ * RM Audio Playlist — admin: clear tracks, bulk allow download.
  */
 (function () {
 	"use strict";
@@ -49,10 +49,6 @@
 
 	document.addEventListener("click", function (e) {
 		var t = e.target;
-		if (t && t.id === "rm-pl-shortcode-copy") {
-			t.select();
-			return;
-		}
 
 		var btn = t && t.closest ? t.closest("#rm-pl-clear-tracks") : null;
 		if (!btn || btn.disabled) {

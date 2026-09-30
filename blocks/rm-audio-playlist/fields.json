@@ -1,0 +1,34 @@
+{
+	"key": "group_rm_pl_block",
+	"title": "Audio playlist player",
+	"fields": [
+		{
+			"key": "field_rm_pl_block_playlist",
+			"label": "Playlist",
+			"name": "rm_pl_block_playlist",
+			"type": "post_object",
+			"instructions": "Choose a playlist from Audio playlists.",
+			"required": 0,
+			"post_type": ["rm_audio_playlist"],
+			"return_format": "id",
+			"ui": 1,
+			"allow_null": 1
+		}
+	],
+	"location": [
+		[
+			{
+				"param": "block",
+				"operator": "==",
+				"value": "acf/rm-audio-playlist"
+			}
+		]
+	],
+	"menu_order": 0,
+	"position": "normal",
+	"style": "default",
+	"label_placement": "top",
+	"instruction_placement": "label",
+	"active": true,
+	"show_in_rest": 0
+}

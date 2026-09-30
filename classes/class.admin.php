@@ -3,44 +3,37 @@
 /**
  * Admin scripts (ACF edit screen).
  *
- * @package rm-audio-playlist
+ * @package Rm_Audio_Playlist
  */
 
 declare(strict_types=1);
 
-if (! defined('ABSPATH')) {
-	exit;
-}
+namespace Rm_Audio_Playlist;
 
 /**
- * Class RM_Audio_Playlist_Admin
+ * Admin scripts (ACF edit screen), REST, and track toolbar UI.
  */
-class RM_Audio_Playlist_Admin {
+final class Admin {
 
 	/**
 	 * Hooks.
 	 */
-	public static function init(): void {
+	public function __construct() {
 		add_action('rest_api_init', array(self::class, 'register_rest_routes'));
 		add_action('acf/input/admin_enqueue_scripts', array(self::class, 'enqueue_acf_scripts'));
 		add_action('acf/save_post', array(self::class, 'fill_empty_track_titles_on_save'), 20);
 		add_action(
-			'acf/render_field/key=' . RM_Audio_Playlist_Acf::SHORTCODE_PANEL_FIELD_KEY,
-			array(self::class, 'render_shortcode_panel'),
-			1
-		);
-		add_action(
-			'acf/render_field/key=' . RM_Audio_Playlist_Acf::CLEAR_TRACKS_DESC_FIELD_KEY,
+			'acf/render_field/key=' . Acf::CLEAR_TRACKS_DESC_FIELD_KEY,
 			array(self::class, 'render_clear_tracks_description'),
 			1
 		);
 		add_action(
-			'acf/render_field/key=' . RM_Audio_Playlist_Acf::CLEAR_TRACKS_ACTION_FIELD_KEY,
+			'acf/render_field/key=' . Acf::CLEAR_TRACKS_ACTION_FIELD_KEY,
 			array(self::class, 'render_clear_tracks_action'),
 			1
 		);
 		add_action(
-			'acf/render_field/key=' . RM_Audio_Playlist_Acf::DOWNLOAD_ALL_FIELD_KEY,
+			'acf/render_field/key=' . Acf::DOWNLOAD_ALL_FIELD_KEY,
 			array(self::class, 'render_download_all_toggle'),
 			1
 		);
@@ -92,7 +85,7 @@ class RM_Audio_Playlist_Admin {
 		if ($post_id <= 0) {
 			return false;
 		}
-		if (RM_Audio_Playlist_Cpt::POST_TYPE !== get_post_type($post_id)) {
+		if (Cpt::POST_TYPE !== get_post_type($post_id)) {
 			return false;
 		}
 		return current_user_can('edit_post', $post_id);
@@ -164,7 +157,7 @@ class RM_Audio_Playlist_Admin {
 	 * @return array{updated: int, downloadable: bool}
 	 */
 	public static function set_playlist_downloadable_all(int $post_id, bool $downloadable): array {
-		$rows = get_field(RM_Audio_Playlist_Acf::REPEATER, $post_id);
+		$rows = get_field(Acf::REPEATER, $post_id);
 		if (! is_array($rows)) {
 			$rows = array();
 		}
@@ -176,16 +169,16 @@ class RM_Audio_Playlist_Admin {
 			if (! is_array($row)) {
 				continue;
 			}
-			$file_id = self::attachment_id_from_repeater_file_value($row[RM_Audio_Playlist_Acf::FILE_KEY] ?? null);
+			$file_id = self::attachment_id_from_repeater_file_value($row[Acf::FILE_KEY] ?? null);
 			if ($file_id <= 0) {
 				continue;
 			}
-			$rows[$index][RM_Audio_Playlist_Acf::DOWNLOADABLE_KEY] = $value;
+			$rows[$index][Acf::DOWNLOADABLE_KEY] = $value;
 			++$updated;
 		}
 
 		if ($updated > 0) {
-			update_field(RM_Audio_Playlist_Acf::REPEATER, $rows, $post_id);
+			update_field(Acf::REPEATER, $rows, $post_id);
 		}
 
 		return array(
@@ -200,7 +193,7 @@ class RM_Audio_Playlist_Admin {
 	 * @return 'all'|'none'|'mixed'|'empty'
 	 */
 	private static function playlist_downloadable_bulk_state(int $post_id): string {
-		$rows = get_field(RM_Audio_Playlist_Acf::REPEATER, $post_id);
+		$rows = get_field(Acf::REPEATER, $post_id);
 		if (! is_array($rows) || $rows === array()) {
 			return 'empty';
 		}
@@ -212,12 +205,12 @@ class RM_Audio_Playlist_Admin {
 			if (! is_array($row)) {
 				continue;
 			}
-			$file_id = self::attachment_id_from_repeater_file_value($row[RM_Audio_Playlist_Acf::FILE_KEY] ?? null);
+			$file_id = self::attachment_id_from_repeater_file_value($row[Acf::FILE_KEY] ?? null);
 			if ($file_id <= 0) {
 				continue;
 			}
 			++$with_file;
-			if (! empty($row[RM_Audio_Playlist_Acf::DOWNLOADABLE_KEY])) {
+			if (! empty($row[Acf::DOWNLOADABLE_KEY])) {
 				++$on;
 			}
 		}
@@ -244,7 +237,7 @@ class RM_Audio_Playlist_Admin {
 		$skipped = array();
 		$errors  = array();
 
-		$rows = get_field(RM_Audio_Playlist_Acf::REPEATER, $post_id);
+		$rows = get_field(Acf::REPEATER, $post_id);
 		if (! is_array($rows)) {
 			$rows = array();
 		}
@@ -254,7 +247,7 @@ class RM_Audio_Playlist_Admin {
 			if (! is_array($row)) {
 				continue;
 			}
-			$file_id = self::attachment_id_from_repeater_file_value($row[RM_Audio_Playlist_Acf::FILE_KEY] ?? null);
+			$file_id = self::attachment_id_from_repeater_file_value($row[Acf::FILE_KEY] ?? null);
 			if ($file_id > 0) {
 				$file_ids[$file_id] = true;
 			}
@@ -277,7 +270,7 @@ class RM_Audio_Playlist_Admin {
 			}
 		}
 
-		update_field(RM_Audio_Playlist_Acf::REPEATER, array(), $post_id);
+		update_field(Acf::REPEATER, array(), $post_id);
 
 		return array(
 			'deleted' => $deleted,
@@ -299,7 +292,7 @@ class RM_Audio_Playlist_Admin {
 			return false;
 		}
 		$prefix = trailingslashit(wp_normalize_path($uploads['basedir']))
-			. RM_Audio_Playlist_Upload_Dir::SUBDIR
+			. Upload_Dir::SUBDIR
 			. '/'
 			. (string) $playlist_id
 			. '/';
@@ -332,7 +325,7 @@ class RM_Audio_Playlist_Admin {
 		if ($post_id <= 0) {
 			return;
 		}
-		if (RM_Audio_Playlist_Cpt::POST_TYPE !== get_post_type($post_id)) {
+		if (Cpt::POST_TYPE !== get_post_type($post_id)) {
 			return;
 		}
 		if (wp_is_post_autosave($post_id) || wp_is_post_revision($post_id)) {
@@ -347,7 +340,7 @@ class RM_Audio_Playlist_Admin {
 			return;
 		}
 
-		$rows = get_field(RM_Audio_Playlist_Acf::REPEATER, $post_id);
+		$rows = get_field(Acf::REPEATER, $post_id);
 		if (! is_array($rows) || $rows === array()) {
 			return;
 		}
@@ -360,8 +353,8 @@ class RM_Audio_Playlist_Admin {
 					++$row_num;
 					continue;
 				}
-				$file_id = self::attachment_id_from_repeater_file_value($row[RM_Audio_Playlist_Acf::FILE_KEY] ?? null);
-				$title = isset($row[RM_Audio_Playlist_Acf::TITLE_KEY]) ? trim((string) $row[RM_Audio_Playlist_Acf::TITLE_KEY]) : '';
+				$file_id = self::attachment_id_from_repeater_file_value($row[Acf::FILE_KEY] ?? null);
+				$title = isset($row[Acf::TITLE_KEY]) ? trim((string) $row[Acf::TITLE_KEY]) : '';
 				if ($file_id <= 0 || '' !== $title) {
 					++$row_num;
 					continue;
@@ -373,9 +366,9 @@ class RM_Audio_Playlist_Admin {
 				}
 				update_sub_field(
 					array(
-						RM_Audio_Playlist_Acf::REPEATER,
+						Acf::REPEATER,
 						$row_num,
-						RM_Audio_Playlist_Acf::TITLE_KEY,
+						Acf::TITLE_KEY,
 					),
 					$suggested,
 					$post_id
@@ -483,54 +476,13 @@ class RM_Audio_Playlist_Admin {
 		return trim($stem);
 	}
 
-	/**
-	 * Output copyable shortcode (first field in the group) when the playlist is published.
-	 *
-	 * @param array<string, mixed> $field ACF field array.
-	 */
-	public static function render_shortcode_panel(array $field): void {
-		unset($field);
-		global $post;
-		if (! $post instanceof \WP_Post || RM_Audio_Playlist_Cpt::POST_TYPE !== $post->post_type) {
-			return;
-		}
-		if (! in_array($post->post_status, array('publish', 'future'), true)) {
-?>
-			<p class="description" style="margin: 0;">
-				<?php esc_html_e('Publish or schedule this playlist to copy the embed shortcode.', 'rm-audio-playlist'); ?>
-			</p>
-		<?php
-			return;
-		}
-		$post_id = (int) $post->ID;
-		if ($post_id <= 0) {
-			return;
-		}
-
-		$code = sprintf('[rm_audio_playlist id="%d"]', $post_id);
-		?>
-		<div class="rm-pl-shortcode-panel notice notice-info inline" style="margin: 0 0 16px; padding: 10px 12px;">
-			<p class="description" style="margin: 0 0 8px;">
-				<?php esc_html_e('Copy this into a page, post, or HTML block to embed this playlist.', 'rm-audio-playlist'); ?>
-			</p>
-			<label class="screen-reader-text" for="rm-pl-shortcode-copy"><?php esc_html_e('Playlist shortcode', 'rm-audio-playlist'); ?></label>
-			<input
-				id="rm-pl-shortcode-copy"
-				type="text"
-				readonly
-				class="large-text code"
-				style="width: 100%; max-width: 40rem; font-size: 13px;"
-				value="<?php echo esc_attr($code); ?>" />
-		</div>
-	<?php
-	}
 
 	/**
 	 * @return array{post_id: int, can_manage: bool, bulk_dl: string, has_tracks: bool}|null
 	 */
 	private static function playlist_toolbar_context(): ?array {
 		global $post;
-		if (! $post instanceof \WP_Post || RM_Audio_Playlist_Cpt::POST_TYPE !== $post->post_type) {
+		if (! $post instanceof \WP_Post || Cpt::POST_TYPE !== $post->post_type) {
 			return null;
 		}
 		$post_id = (int) $post->ID;
@@ -634,30 +586,17 @@ class RM_Audio_Playlist_Admin {
 	 */
 	public static function enqueue_acf_scripts(): void {
 		$screen = get_current_screen();
-		if (! $screen || RM_Audio_Playlist_Cpt::POST_TYPE !== $screen->post_type) {
+		if (! $screen || Cpt::POST_TYPE !== $screen->post_type) {
 			return;
 		}
 
-		wp_enqueue_style(
-			'rm-audio-playlist-admin',
-			RM_AUDIO_PLAYLIST_URL . 'assets/css/rm-audio-playlist-admin.css',
-			array(),
-			RM_AUDIO_PLAYLIST_VERSION
-		);
-
-		wp_enqueue_script(
-			'rm-audio-playlist-admin',
-			RM_AUDIO_PLAYLIST_URL . 'assets/js/rm-audio-playlist-admin.js',
-			array(),
-			RM_AUDIO_PLAYLIST_VERSION,
-			true
-		);
+		Assets::enqueue_admin();
 
 		global $post;
 		$localize = array(
 			'nonce' => wp_create_nonce('wp_rest'),
 		);
-		if ($post instanceof \WP_Post && RM_Audio_Playlist_Cpt::POST_TYPE === $post->post_type) {
+		if ($post instanceof \WP_Post && Cpt::POST_TYPE === $post->post_type) {
 			$post_id = (int) $post->ID;
 			if (
 				$post_id > 0
@@ -678,6 +617,8 @@ class RM_Audio_Playlist_Admin {
 		$localize['downloadAllFailed'] = __('Could not update download settings. Try again or check your connection.', 'rm-audio-playlist');
 		$localize['downloadAllSaving'] = __('Updating download settings…', 'rm-audio-playlist');
 
-		wp_localize_script('rm-audio-playlist-admin', 'rmAudioPlaylistAdmin', $localize);
+		wp_localize_script( Constants::HANDLE_ADMIN, 'rmAudioPlaylistAdmin', $localize );
 	}
 }
+
+new Admin();

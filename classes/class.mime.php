@@ -2,19 +2,22 @@
 /**
  * Allow MP3 uploads when servers mis-detect type or mimes are restricted.
  *
- * @package rm-audio-playlist
+ * @package Rm_Audio_Playlist
  */
 
 declare(strict_types=1);
 
-if ( ! defined( 'ABSPATH' ) ) {
-	exit;
-}
+namespace Rm_Audio_Playlist;
 
 /**
- * Class RM_Audio_Playlist_Mime
+ * MP3 mime / filetype filters.
  */
-class RM_Audio_Playlist_Mime {
+final class Mime {
+
+	public function __construct() {
+		add_filter( 'upload_mimes', array( $this, 'allow_mp3' ) );
+		add_filter( 'wp_check_filetype_and_ext', array( $this, 'fix_mp3_check' ), 10, 5 );
+	}
 
 	/**
 	 * Ensure MP3 is listed in allowed upload types.
@@ -22,7 +25,7 @@ class RM_Audio_Playlist_Mime {
 	 * @param string[] $mimes Extension (or pipe list) => mime.
 	 * @return string[]
 	 */
-	public static function allow_mp3( array $mimes ): array {
+	public function allow_mp3( array $mimes ): array {
 		$mimes['mp3'] = 'audio/mpeg';
 		if ( ! isset( $mimes['mp3|m4a|m4b'] ) ) {
 			$mimes['mp3|m4a|m4b'] = 'audio/mpeg';
@@ -33,14 +36,14 @@ class RM_Audio_Playlist_Mime {
 	/**
 	 * When the file is a .mp3, align extension and mime with audio/mpeg.
 	 *
-	 * @param string[]|array<string, string|false> $data File data from wp_check_filetype_and_ext.
-	 * @param string                               $file Full path to temp file.
-	 * @param string                               $filename Original filename.
-	 * @param string[]|null                        $mimes      Mime map or null.
-	 * @param string|false                         $real_mime  Detected mime.
+	 * @param string[]|array<string, string|false> $data      File data from wp_check_filetype_and_ext.
+	 * @param string                               $file      Full path to temp file.
+	 * @param string                               $filename  Original filename.
+	 * @param string[]|null                        $mimes     Mime map or null.
+	 * @param string|false                         $real_mime Detected mime.
 	 * @return string[]|array<string, string|false>
 	 */
-	public static function fix_mp3_check( $data, $file, $filename, $mimes, $real_mime ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
+	public function fix_mp3_check( $data, $file, $filename, $mimes, $real_mime ) { // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.FoundAfterLastUsed
 		if ( ! is_array( $data ) ) {
 			return $data;
 		}
@@ -61,7 +64,7 @@ class RM_Audio_Playlist_Mime {
 			false,
 		);
 		$is_known = in_array( $real_mime, $allowed_reals, true ) || ( is_string( $real_mime ) && 0 === strpos( $real_mime, 'audio/' ) );
-		$probed   = self::is_probably_mp3( $file );
+		$probed   = $this->is_probably_mp3( $file );
 
 		if ( $is_known || $probed || false === $data['ext'] || ( isset( $data['type'] ) && false === $data['type'] ) ) {
 			$data['ext']  = 'mp3';
@@ -73,7 +76,7 @@ class RM_Audio_Playlist_Mime {
 	/**
 	 * @param string $file Absolute path to uploaded temp file.
 	 */
-	private static function is_probably_mp3( $file ): bool {
+	private function is_probably_mp3( $file ): bool {
 		if ( ! is_string( $file ) || ! is_readable( $file ) ) {
 			return false;
 		}
@@ -85,3 +88,5 @@ class RM_Audio_Playlist_Mime {
 		return 0 === strncmp( $fs, "\xff\xfb", 2 ) || 0 === strncmp( $fs, "\xff\xf3", 2 ) || 0 === strncmp( $fs, "\xff\xf2", 2 );
 	}
 }
+
+new Mime();

@@ -1,0 +1,87 @@
+/* Tokens, shell, noscript */
+
+.rm-audio-playlist {
+  --rm-surface: #faf9f7;
+  --rm-elev: #ffffff;
+  --rm-border: #e3e0d8;
+  --rm-text: #121212;
+  --rm-muted: #5f5d59;
+  /*
+   * Accent inherits theme `--accent` when the host theme defines it
+   * (e.g. on :root). `var(--accent, …)` only uses the second argument
+   * if `--accent` is missing or invalid — so standalone installs keep
+   * the plugin teal, and themed sites (rm-portfolio, etc.) match brand.
+   * `--rm-accent-2` / `--rm-glow` derive from `--rm-accent` so both
+   * paths stay in sync without a second theme token.
+   */
+  --rm-accent: var(--accent, #0d6e5c);
+  --rm-accent-2: color-mix(in srgb, var(--rm-accent) 78%, #000);
+  --rm-glow: color-mix(in srgb, var(--rm-accent) 12%, transparent);
+  --rm-radius: 16px;
+  --rm-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 32px rgba(0, 0, 0, 0.06);
+  --rm-tip-bg: #1a1a18;
+  --rm-tip-fg: #faf9f6;
+  --rm-tip-radius: 10px;
+  --rm-pad-bs: 1.35rem;
+  --rm-pad-inline: 1.5rem;
+  --rm-pad-be: 1.5rem;
+
+  container-type: inline-size;
+  container-name: rm-playlist;
+
+  box-sizing: border-box;
+  color: var(--rm-text);
+  background: var(--rm-elev);
+  border: 1px solid var(--rm-border);
+  border-radius: var(--rm-radius);
+  padding-block-start: var(--rm-pad-bs);
+  padding-inline: var(--rm-pad-inline);
+  padding-block-end: var(--rm-pad-be);
+  max-inline-size: 28rem;
+  margin-inline: auto;
+  font-family:
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  font-size: 0.95rem;
+  line-height: 1.45;
+  box-shadow: var(--rm-shadow);
+
+  @media (prefers-color-scheme: dark) {
+    --rm-surface: #141413;
+    --rm-elev: #1c1c1a;
+    --rm-border: #2e2e2a;
+    --rm-text: #f2f1ee;
+    --rm-muted: #a8a6a0;
+    /* Same theme `--accent` preference; teal fallback for dark-only installs. */
+    --rm-accent: var(--accent, #3ecfae);
+    --rm-accent-2: color-mix(in srgb, var(--rm-accent) 72%, #fff);
+    --rm-glow: color-mix(in srgb, var(--rm-accent) 15%, transparent);
+    --rm-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.04), 0 12px 40px rgba(0, 0, 0, 0.4);
+    --rm-tip-bg: #f0efe8;
+    --rm-tip-fg: #1a1a18;
+  }
+
+  @media (min-width: 1024px) {
+    line-height: 1.5;
+  }
+
+  @container rm-playlist (max-inline-size: 24rem) {
+    --rm-pad-bs: 1.1rem;
+    --rm-pad-inline: 1.1rem;
+    --rm-pad-be: 1.1rem;
+  }
+
+  &.rm-audio-playlist--ready .rm-audio-playlist__noscript {
+    display: none;
+  }
+
+  & .rm-audio-playlist__inner {
+    position: relative;
+    margin: 0;
+  }
+
+}

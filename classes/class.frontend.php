@@ -1,69 +1,18 @@
 <?php
 /**
- * Shortcode, asset enqueue, playlist payload.
+ * Playlist payload + player markup (used by the ACF block template).
  *
- * @package rm-audio-playlist
+ * @package Rm_Audio_Playlist
  */
 
 declare(strict_types=1);
 
-if ( ! defined( 'ABSPATH' ) ) {
-	exit;
-}
+namespace Rm_Audio_Playlist;
 
 /**
- * Class RM_Audio_Playlist_Frontend
+ * Public playlist markup/payload helpers.
  */
-class RM_Audio_Playlist_Frontend {
-
-	private const HANDLE_JS  = 'rm-audio-playlist-frontend';
-	private const HANDLE_CSS = 'rm-audio-playlist-frontend';
-
-	/**
-	 * @var bool
-	 */
-	private static $assets_registered = false;
-
-	/**
-	 * @var bool
-	 */
-	private static $assets_enqueued = false;
-
-	/**
-	 * Hooks.
-	 */
-	public static function init(): void {
-		add_action( 'wp_enqueue_scripts', array( self::class, 'register_assets' ) );
-		add_shortcode( 'rm_audio_playlist', array( self::class, 'shortcode' ) );
-	}
-
-	/**
-	 * Register script/style; actual enqueue happens when shortcode runs.
-	 */
-	public static function register_assets(): void {
-		if ( self::$assets_registered ) {
-			return;
-		}
-		$base = trailingslashit( RM_AUDIO_PLAYLIST_URL );
-		$ver  = RM_AUDIO_PLAYLIST_VERSION;
-
-		wp_register_style( self::HANDLE_CSS, $base . 'assets/css/rm-audio-playlist-frontend.css', array(), $ver );
-		wp_register_script( self::HANDLE_JS, $base . 'assets/js/rm-audio-playlist-frontend.js', array(), $ver, true );
-		self::$assets_registered = true;
-	}
-
-	/**
-	 * Register (if needed) and enqueue player CSS/JS (front end or block editor).
-	 */
-	public static function enqueue_assets(): void {
-		self::register_assets();
-		if ( self::$assets_enqueued ) {
-			return;
-		}
-		wp_enqueue_style( self::HANDLE_CSS );
-		wp_enqueue_script( self::HANDLE_JS );
-		self::$assets_enqueued = true;
-	}
+final class Frontend {
 
 	/**
 	 * Strip tags and decode HTML entities so titles show real characters (e.g. en dash) instead of &#8211;.
@@ -74,7 +23,7 @@ class RM_Audio_Playlist_Frontend {
 	 * @param string $text Raw title from post/ACF.
 	 */
 	private static function plaintext_for_display( string $text ): string {
-		$text = wp_strip_all_tags( $text );
+		$text  = wp_strip_all_tags( $text );
 		$flags = ENT_QUOTES | ( defined( 'ENT_HTML5' ) ? ENT_HTML5 : 0 );
 		$prev  = '';
 		$out   = $text;
@@ -95,21 +44,21 @@ class RM_Audio_Playlist_Frontend {
 	 */
 	public static function get_playlist_payload( int $post_id ) {
 		$post = get_post( $post_id );
-		if ( ! $post || RM_Audio_Playlist_Cpt::POST_TYPE !== $post->post_type ) {
+		if ( ! $post || Cpt::POST_TYPE !== $post->post_type ) {
 			return new \WP_Error( 'rm_pl_invalid', __( 'Invalid playlist.', 'rm-audio-playlist' ) );
 		}
 		if ( 'publish' !== $post->post_status && ! current_user_can( 'read_post', $post_id ) ) {
 			return new \WP_Error( 'rm_pl_private', __( 'This playlist is not available.', 'rm-audio-playlist' ) );
 		}
 
-		$title = self::plaintext_for_display( (string) get_post_field( 'post_title', $post_id, 'raw' ) );
+		$title  = self::plaintext_for_display( (string) get_post_field( 'post_title', $post_id, 'raw' ) );
 		$tracks = array();
 
 		$artwork_url       = '';
 		$artwork_thumb_url = '';
 		$artwork_alt       = '';
 		if ( function_exists( 'get_field' ) ) {
-			$artwork_id = (int) get_field( RM_Audio_Playlist_Acf::ARTWORK_KEY, $post_id );
+			$artwork_id = (int) get_field( Acf::ARTWORK_KEY, $post_id );
 			if ( $artwork_id > 0 && wp_attachment_is_image( $artwork_id ) ) {
 				$full_url  = wp_get_attachment_image_url( $artwork_id, 'full' );
 				$thumb_url = wp_get_attachment_image_url( $artwork_id, 'medium' );
@@ -130,13 +79,13 @@ class RM_Audio_Playlist_Frontend {
 			}
 		}
 
-		$rows = function_exists( 'get_field' ) ? get_field( RM_Audio_Playlist_Acf::REPEATER, $post_id ) : null;
+		$rows = function_exists( 'get_field' ) ? get_field( Acf::REPEATER, $post_id ) : null;
 
 		if ( is_array( $rows ) ) {
 			foreach ( $rows as $row ) {
-				$file_id  = is_array( $row ) && isset( $row[ RM_Audio_Playlist_Acf::FILE_KEY ] ) ? (int) $row[ RM_Audio_Playlist_Acf::FILE_KEY ] : 0;
-				$override = is_array( $row ) && ! empty( $row[ RM_Audio_Playlist_Acf::TITLE_KEY ] ) ? (string) $row[ RM_Audio_Playlist_Acf::TITLE_KEY ] : '';
-				$downloadable = is_array( $row ) && ! empty( $row[ RM_Audio_Playlist_Acf::DOWNLOADABLE_KEY ] );
+				$file_id      = is_array( $row ) && isset( $row[ Acf::FILE_KEY ] ) ? (int) $row[ Acf::FILE_KEY ] : 0;
+				$override     = is_array( $row ) && ! empty( $row[ Acf::TITLE_KEY ] ) ? (string) $row[ Acf::TITLE_KEY ] : '';
+				$downloadable = is_array( $row ) && ! empty( $row[ Acf::DOWNLOADABLE_KEY ] );
 				if ( $file_id <= 0 ) {
 					continue;
 				}
@@ -186,10 +135,10 @@ class RM_Audio_Playlist_Frontend {
 	}
 
 	/**
-	 * Markup for one player instance (shortcode, ACF block, PHP).
+	 * Markup for one player instance (ACF block template).
 	 *
-	 * @param int    $id           Playlist post ID.
-	 * @param string $extra_class  Extra CSS classes (sanitized as attribute).
+	 * @param int    $id          Playlist post ID.
+	 * @param string $extra_class Extra CSS classes (sanitized as attribute).
 	 */
 	public static function render( int $id, string $extra_class = '' ): string {
 		if ( $id <= 0 ) {
@@ -203,13 +152,12 @@ class RM_Audio_Playlist_Frontend {
 			}
 			return '';
 		}
-		self::enqueue_assets();
 		$json = wp_json_encode(
 			$payload,
 			JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
 		);
 		$uid = 'rm-pl-' . $id . '-' . (string) wp_unique_id( 'a' );
-		$cls = 'rm-audio-playlist' . ( $extra_class !== '' ? ' ' . esc_attr( $extra_class ) : '' );
+		$cls = 'rm-audio-playlist' . ( '' !== $extra_class ? ' ' . esc_attr( $extra_class ) : '' );
 		ob_start();
 		?>
 		<div
@@ -228,30 +176,5 @@ class RM_Audio_Playlist_Frontend {
 		</div>
 		<?php
 		return (string) ob_get_clean();
-	}
-
-	/**
-	 * [rm_audio_playlist id="123" class="..."]
-	 *
-	 * @param string[]|array<string, string> $atts Shortcode atts.
-	 */
-	public static function shortcode( $atts ): string { // phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals
-		$atts = shortcode_atts(
-			array(
-				'id'    => 0,
-				'class' => '',
-			),
-			$atts,
-			'rm_audio_playlist'
-		);
-		$id   = (int) $atts['id'];
-		$more = (string) $atts['class'];
-		if ( $id <= 0 ) {
-			if ( is_user_logged_in() && current_user_can( 'edit_posts' ) ) {
-				return '<p class="rm-audio-playlist--error">' . esc_html__( 'Shortcode: set a valid id=" post ID ".', 'rm-audio-playlist' ) . '</p>';
-			}
-			return '';
-		}
-		return self::render( $id, $more );
 	}
 }

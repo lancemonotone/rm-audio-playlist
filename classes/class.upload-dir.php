@@ -5,19 +5,17 @@
  * The plugin does not alter stored filenames; WordPress core still runs sanitize_file_name()
  * and wp_unique_filename() on upload (security / collisions).
  *
- * @package rm-audio-playlist
+ * @package Rm_Audio_Playlist
  */
 
 declare(strict_types=1);
 
-if ( ! defined( 'ABSPATH' ) ) {
-	exit;
-}
+namespace Rm_Audio_Playlist;
 
 /**
- * Class RM_Audio_Playlist_Upload_Dir
+ * Scoped upload directory for playlist assets.
  */
-class RM_Audio_Playlist_Upload_Dir {
+final class Upload_Dir {
 
 	public const SUBDIR = 'rm-audio-playlist';
 
@@ -28,10 +26,7 @@ class RM_Audio_Playlist_Upload_Dir {
 	 */
 	private const ARTWORK_EXTENSIONS = array( 'jpg', 'jpeg', 'png', 'webp', 'gif' );
 
-	/**
-	 * Register filter.
-	 */
-	public static function init(): void {
+	public function __construct() {
 		add_filter( 'upload_dir', array( self::class, 'filter_upload_dir' ), 99 );
 	}
 
@@ -76,7 +71,7 @@ class RM_Audio_Playlist_Upload_Dir {
 			return $uploads;
 		}
 
-		if ( RM_Audio_Playlist_Cpt::POST_TYPE !== get_post_type( $post_id ) ) {
+		if ( Cpt::POST_TYPE !== get_post_type( $post_id ) ) {
 			return $uploads;
 		}
 
@@ -117,11 +112,11 @@ class RM_Audio_Playlist_Upload_Dir {
 				continue;
 			}
 			$name = $file['name'] ?? '';
-			if ( ! is_string( $name ) || $name === '' ) {
+			if ( ! is_string( $name ) || '' === $name ) {
 				continue;
 			}
 			$ext = strtolower( pathinfo( $name, PATHINFO_EXTENSION ) );
-			if ( $ext === 'mp3' ) {
+			if ( 'mp3' === $ext ) {
 				return true;
 			}
 			foreach ( self::ARTWORK_EXTENSIONS as $allowed ) {
@@ -133,3 +128,5 @@ class RM_Audio_Playlist_Upload_Dir {
 		return false;
 	}
 }
+
+new Upload_Dir();

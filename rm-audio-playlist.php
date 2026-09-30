@@ -1,14 +1,14 @@
 <?php
 /**
  * Plugin Name:       RM Audio Playlist
- * Description:         Admin ACF-backed MP3 playlists and a public player with play order, speed, skip, repeat, shuffle, and keyboard support.
- * Version:             1.3.15
- * Requires at least:   6.0
- * Requires PHP:        7.4
- * Author:              Rusmiller
- * Text Domain:         rm-audio-playlist
+ * Description:       Admin ACF-backed MP3 playlists and a block editor player with play order, speed, skip, repeat, shuffle, and keyboard support.
+ * Version:           1.4.0
+ * Requires at least: 6.0
+ * Requires PHP:      7.4
+ * Author:            Rusmiller
+ * Text Domain:       rm-audio-playlist
  *
- * @package rm-audio-playlist
+ * @package Rm_Audio_Playlist
  */
 
 declare(strict_types=1);
@@ -17,43 +17,26 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'RM_AUDIO_PLAYLIST_VERSION', '1.3.15' );
+define( 'RM_AUDIO_PLAYLIST_VERSION', '1.4.0' );
 define( 'RM_AUDIO_PLAYLIST_FILE', __FILE__ );
 define( 'RM_AUDIO_PLAYLIST_DIR', plugin_dir_path( __FILE__ ) );
 define( 'RM_AUDIO_PLAYLIST_URL', plugin_dir_url( __FILE__ ) );
 
-require_once RM_AUDIO_PLAYLIST_DIR . 'includes/class-rm-audio-playlist-mime.php';
-require_once RM_AUDIO_PLAYLIST_DIR . 'includes/class-rm-audio-playlist-cpt.php';
-require_once RM_AUDIO_PLAYLIST_DIR . 'includes/class-rm-audio-playlist-upload-dir.php';
-require_once RM_AUDIO_PLAYLIST_DIR . 'includes/class-rm-audio-playlist-acf.php';
-require_once RM_AUDIO_PLAYLIST_DIR . 'includes/class-rm-audio-playlist-frontend.php';
-require_once RM_AUDIO_PLAYLIST_DIR . 'includes/class-rm-audio-playlist-block.php';
-require_once RM_AUDIO_PLAYLIST_DIR . 'includes/class-rm-audio-playlist-admin.php';
-
-add_filter( 'upload_mimes', array( 'RM_Audio_Playlist_Mime', 'allow_mp3' ) );
-add_filter( 'wp_check_filetype_and_ext', array( 'RM_Audio_Playlist_Mime', 'fix_mp3_check' ), 10, 5 );
-
-RM_Audio_Playlist_Upload_Dir::init();
-
-add_action( 'init', array( 'RM_Audio_Playlist_Cpt', 'register' ) );
-add_action( 'admin_notices', array( 'RM_Audio_Playlist_Cpt', 'admin_notice_acf' ) );
-add_action( 'acf/init', array( 'RM_Audio_Playlist_Acf', 'register' ) );
-
-RM_Audio_Playlist_Frontend::init();
-RM_Audio_Playlist_Block::init();
-RM_Audio_Playlist_Admin::init();
+foreach ( glob( RM_AUDIO_PLAYLIST_DIR . 'classes/class.*.php' ) as $filename ) {
+	require_once $filename;
+}
 
 /**
- * Fires on plugin activation: register CPT and flush rewrites.
+ * Activation: register CPT, ensure upload base, flush rewrites.
  */
 function rm_audio_playlist_activate(): void {
-	RM_Audio_Playlist_Cpt::register();
-	RM_Audio_Playlist_Upload_Dir::ensure_base_folder();
+	\Rm_Audio_Playlist\Cpt::register();
+	\Rm_Audio_Playlist\Upload_Dir::ensure_base_folder();
 	flush_rewrite_rules( true );
 }
 
 /**
- * Fires on plugin deactivation.
+ * Deactivation: flush rewrites.
  */
 function rm_audio_playlist_deactivate(): void {
 	flush_rewrite_rules( true );
