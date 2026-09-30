@@ -25,6 +25,7 @@
   --rm-pad-bs: 1.35rem;
   --rm-pad-inline: 1.5rem;
   --rm-pad-be: 1.5rem;
+  --rm-line-height: 1.45;
 
   container-type: inline-size;
   container-name: rm-playlist;
@@ -46,7 +47,7 @@
     Roboto,
     sans-serif;
   font-size: 0.95rem;
-  line-height: 1.45;
+  line-height: var(--rm-line-height);
   box-shadow: var(--rm-shadow);
 
   @media (prefers-color-scheme: dark) {
@@ -66,7 +67,7 @@
   }
 
   @media (min-width: 1024px) {
-    line-height: 1.5;
+    --rm-line-height: 1.5;
   }
 
   @container rm-playlist (max-inline-size: 24rem) {

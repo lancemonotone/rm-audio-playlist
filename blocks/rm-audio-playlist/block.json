@@ -25,8 +25,7 @@
 		"file:./css/art-lightbox.css",
 		"file:./css/progress.css",
 		"file:./css/controls.css",
-		"file:./css/queue.css",
-		"file:./css/fullbleed.css"
+		"file:./css/queue.css"
 	],
 	"script": [
 		"file:./js/00-bootstrap.js",

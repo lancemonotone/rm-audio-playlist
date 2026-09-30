@@ -1,0 +1,114 @@
+{
+	"key": "group_rm_audio_playlist",
+	"title": "Playlist tracks",
+	"fields": [
+		{
+			"key": "field_rm_pl_artwork",
+			"label": "Playlist artwork",
+			"name": "rm_pl_artwork",
+			"type": "image",
+			"instructions": "Square cover image for the public player (optional). New uploads from this screen are stored under wp-content/uploads/rm-audio-playlist/{playlist ID}/ alongside tracks.",
+			"required": 0,
+			"return_format": "id",
+			"preview_size": "medium",
+			"library": "all",
+			"mime_types": "jpg,jpeg,png,webp,gif"
+		},
+		{
+			"key": "field_rm_pl_clear_tracks_desc",
+			"label": "Reset tracks",
+			"name": "",
+			"type": "message",
+			"message": "",
+			"new_lines": "",
+			"esc_html": 0,
+			"wrapper": {
+				"width": "50",
+				"class": "rm-pl-toolbar-col rm-pl-toolbar-col--desc"
+			}
+		},
+		{
+			"key": "field_rm_pl_clear_tracks_action",
+			"label": "Remove MP3s",
+			"name": "",
+			"type": "message",
+			"message": "",
+			"new_lines": "",
+			"esc_html": 0,
+			"wrapper": {
+				"width": "25",
+				"class": "rm-pl-toolbar-col rm-pl-toolbar-col--clear"
+			}
+		},
+		{
+			"key": "field_rm_pl_download_all",
+			"label": "Allow download all",
+			"name": "",
+			"type": "message",
+			"message": "",
+			"new_lines": "",
+			"esc_html": 0,
+			"wrapper": {
+				"width": "25",
+				"class": "rm-pl-toolbar-col rm-pl-toolbar-col--download"
+			}
+		},
+		{
+			"key": "field_rm_pl_tracks",
+			"label": "Tracks",
+			"name": "rm_pl_tracks",
+			"type": "repeater",
+			"instructions": "Add files in play order. New MP3 uploads from this playlist screen are stored under wp-content/uploads/rm-audio-playlist/{playlist ID}/ (no dated folders). Uploads from other screens are unchanged. Only MP3 files are allowed (plugin whitelist).",
+			"required": 0,
+			"layout": "row",
+			"button_label": "Add track",
+			"sub_fields": [
+				{
+					"key": "field_rm_pl_file",
+					"label": "MP3 file",
+					"name": "rm_pl_file",
+					"type": "file",
+					"required": 1,
+					"return_format": "id",
+					"library": "all",
+					"mime_types": "mp3"
+				},
+				{
+					"key": "field_rm_pl_track_title",
+					"label": "Track title (optional)",
+					"name": "rm_pl_track_title",
+					"type": "text",
+					"required": 0,
+					"instructions": "Overrides the attachment title on the public player. If left empty, it is filled on save from embedded MP3 tags when available (Artist - Title if both exist), otherwise from the filename."
+				},
+				{
+					"key": "field_rm_pl_downloadable",
+					"label": "Allow download",
+					"name": "rm_pl_downloadable",
+					"type": "true_false",
+					"instructions": "When enabled, the public player shows a download control for this track.",
+					"required": 0,
+					"default_value": 0,
+					"ui": 1,
+					"ui_on_text": "Yes",
+					"ui_off_text": "No"
+				}
+			]
+		}
+	],
+	"location": [
+		[
+			{
+				"param": "post_type",
+				"operator": "==",
+				"value": "rm_audio_playlist"
+			}
+		]
+	],
+	"menu_order": 0,
+	"position": "normal",
+	"style": "default",
+	"label_placement": "top",
+	"instruction_placement": "label",
+	"active": true
+}

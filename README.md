@@ -101,22 +101,24 @@ Accent color inherits theme `--accent` when defined; otherwise a plugin teal fal
 ## Architecture
 
 ```text
-rm-audio-playlist.php          Bootstrap: constants, class glob, activate/deactivate
-classes/                       Namespace Rm_Audio_Playlist; each file self-boots with new Class()
-  class.constants.php
-  class.assets.php             Admin asset build + lazy enqueue
-  class.block-registration.php Discovers blocks/*/block.json + fields.json
-  class.cpt.php
-  class.acf.php                CPT field group (tracks repeater)
-  class.mime.php               MP3 upload mime fixes
-  class.upload-dir.php         Scoped upload directory
-  class.frontend.php           Playlist payload + player markup helper
-  class.admin.php              REST + ACF admin UI + ID3 title fill
-blocks/rm-audio-playlist/      Heart & Soil–style block folder
-  block.json                   Registration + style/script lists
+rm-audio-playlist.php          Bootstrap: path constants, class glob, activate/deactivate
+classes/                       Architectural loaders only (no playlist guts)
+  class.acf.php                Loads each block's fields.json + acf-json/
+  class.block-registration.php Discovers blocks/*, loads block PHP, registers types
+blocks/rm-audio-playlist/      The playlist product (CPT + admin + player)
+  block.json                   Registration + front style/script lists
   fields.json                  Block sidebar fields
-  template.php                 Render
+  acf-json/                    CPT field groups (group_*.json)
+  template.php                 Block render
   class.block.php              Section shell helpers
+  classes/                     Playlist PHP (self-boot via Block_Registration)
+    class.constants.php        Slug, admin handle, ACF field name/key IDs
+    class.cpt.php              Audio playlists CPT
+    class.admin.php            REST + ACF admin UI + ID3 title fill
+    class.assets.php           Admin asset build + lazy enqueue
+    class.mime.php             MP3 upload mime fixes
+    class.upload-dir.php       Scoped upload directory
+    class.frontend.php         Playlist payload + player markup
   css/*.css                    Player styles (by concern)
   js/*.js                      Player scripts (numbered load order)
 assets/src/admin/              Admin CSS/JS sources + manifests
@@ -125,16 +127,22 @@ assets/build/                  Generated admin min bundles (gitignored)
 
 ### PHP boot
 
-`rm-audio-playlist.php` loads every `classes/class.*.php` via `glob`. Classes use constructors to attach hooks (theme-shaped pattern).
+1. `rm-audio-playlist.php` globs plugin `classes/class.*.php` (loaders).
+2. `Block_Registration` immediately globs each `blocks/*/classes/class.*.php` (+ `class.block.php`).
+3. On `acf/init`, loaders register field groups and block types.
+
+### ACF fields (JSON only)
+
+`Acf` on `acf/init` loads, per block folder:
+
+1. `acf-json/group_*.json` (CPT groups when present)
+2. `fields.json` (block sidebar)
+
+Block `Constants` holds field **name/key** strings for PHP callers.
 
 ### Block registration
 
-On `acf/init`, `Block_Registration`:
-
-1. Finds each folder under `blocks/` with `block.json`
-2. Calls `register_block_type( $folder )`
-3. Loads `fields.json` into ACF
-4. Optionally requires `class.block.php`
+`Block_Registration` constructor loads each block's PHP immediately. On `acf/init` it registers types for folders with `block.json`.
 
 Front assets are listed in `block.json` (`style` / `script` arrays). Load order for JS is the array order (filenames are numbered for clarity only).
 
@@ -174,7 +182,7 @@ Permission: user can `edit_post` the playlist.
 
 ### Changing player CSS
 
-Edit files under `blocks/rm-audio-playlist/css/`. Keep concerns split (`base`, `art-lightbox`, `progress`, `controls`, `queue`, `fullbleed`). Register new files in `block.json` `style` if you add more.
+Edit files under `blocks/rm-audio-playlist/css/`. Keep concerns split (`base`, `art-lightbox`, `progress`, `controls`, `queue`). Register new files in `block.json` `style` if you add more.
 
 Prefer mobile-first CSS, nested `@media` at `768px` / `1024px`, logical properties, and theme `--accent` when styling accents.
 
