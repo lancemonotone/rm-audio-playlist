@@ -12,7 +12,6 @@
 
 declare(strict_types=1);
 
-use Rm_Audio_Playlist\Frontend;
 use Rm_Audio_Playlist\Playlist_Block;
 
 unset( $content, $post_id );
@@ -29,5 +28,6 @@ if ( $id <= 0 ) {
 
 $block = is_array( $block ) ? $block : array();
 Playlist_Block::open_shell( $block );
-echo Frontend::render( $id ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- markup built with escaping in render().
+// phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- markup built with escaping in player render.
+echo apply_filters( 'rm_audio_playlist_render_player', '', $id, '' );
 echo '</section>';

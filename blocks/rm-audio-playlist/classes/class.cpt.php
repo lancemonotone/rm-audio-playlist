@@ -18,6 +18,7 @@ final class Cpt {
 
 	public function __construct() {
 		add_action( 'init', array( self::class, 'register' ) );
+		add_action( 'rm_audio_playlist_activate', array( self::class, 'register' ) );
 		add_action( 'admin_notices', array( self::class, 'admin_notice_acf' ) );
 	}
 

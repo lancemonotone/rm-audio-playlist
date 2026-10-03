@@ -101,24 +101,28 @@ Accent color inherits theme `--accent` when defined; otherwise a plugin teal fal
 ## Architecture
 
 ```text
-rm-audio-playlist.php          Bootstrap: path constants, class glob, activate/deactivate
-classes/                       Architectural loaders only (no playlist guts)
+rm-audio-playlist.php          Bootstrap: path constants, class glob, activate (hook) / deactivate
+classes/                       Shell loaders only (block-agnostic)
   class.acf.php                Loads each block's fields.json + acf-json/
   class.block-registration.php Discovers blocks/*, loads block PHP, registers types
 blocks/rm-audio-playlist/      The playlist product (CPT + admin + player)
   block.json                   Registration + front style/script lists
   fields.json                  Block sidebar fields
   acf-json/                    CPT field groups (group_*.json)
-  template.php                 Block render
+  template.php                 Block render (player markup via filter)
   class.block.php              Section shell helpers
-  classes/                     Playlist PHP (self-boot via Block_Registration)
+  classes/                     Playlist PHP (self-boot; collaborate via hooks)
     class.constants.php        Slug, admin handle, ACF field name/key IDs
-    class.cpt.php              Audio playlists CPT
-    class.admin.php            REST + ACF admin UI + ID3 title fill
-    class.assets.php           Admin asset build + lazy enqueue
+    class.cpt.php              Audio playlists CPT (+ activate hook)
+    class.upload-dir.php       Scoped upload directory (+ activate hook)
     class.mime.php             MP3 upload mime fixes
-    class.upload-dir.php       Scoped upload directory
-    class.frontend.php         Playlist payload + player markup
+    class.assets.php           Admin asset build; enqueue on action
+    class.rest.php             REST routes (domain via filters)
+    class.playlist-tracks.php  Clear tracks / bulk downloadable
+    class.track-titles.php     ID3 / filename title fill on save
+    class.admin-acf-ui.php     ACF toolbar UI + localize
+    class.playlist-payload.php Public player payload filter
+    class.player-render.php    Player markup filter
   css/*.css                    Player styles (by concern)
   js/*.js                      Player scripts (numbered load order)
 assets/src/admin/              Admin CSS/JS sources + manifests
@@ -129,7 +133,8 @@ assets/build/                  Generated admin min bundles (gitignored)
 
 1. `rm-audio-playlist.php` globs plugin `classes/class.*.php` (loaders).
 2. `Block_Registration` immediately globs each `blocks/*/classes/class.*.php` (+ `class.block.php`).
-3. On `acf/init`, loaders register field groups and block types.
+3. Activation fires `rm_audio_playlist_activate`; block classes (CPT, upload dir) listen.
+4. On `acf/init`, loaders register field groups and block types.
 
 ### ACF fields (JSON only)
 

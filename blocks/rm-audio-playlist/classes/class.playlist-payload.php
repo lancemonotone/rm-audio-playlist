@@ -1,6 +1,6 @@
 <?php
 /**
- * Playlist payload + player markup for the audio playlist block.
+ * JSON-safe playlist payload for the public player.
  *
  * @package Rm_Audio_Playlist
  */
@@ -10,9 +10,24 @@ declare(strict_types=1);
 namespace Rm_Audio_Playlist;
 
 /**
- * Block-scoped playlist markup/payload helpers.
+ * Builds track list + artwork data from a playlist post.
  */
-final class Frontend {
+final class Playlist_Payload {
+
+	public function __construct() {
+		add_filter( 'rm_audio_playlist_playlist_payload', array( self::class, 'filter_payload' ), 10, 2 );
+	}
+
+	/**
+	 * @param mixed $result Prior filter value.
+	 * @return array{title:string,tracks:array<int, array{url:string,title:string,downloadable?:bool,downloadName?:string}>,artworkUrl?:string,artworkThumbUrl?:string,artworkAlt?:string}|\WP_Error|mixed
+	 */
+	public static function filter_payload( $result, int $post_id ) {
+		if ( null !== $result ) {
+			return $result;
+		}
+		return self::get( $post_id );
+	}
 
 	/**
 	 * Strip tags and decode HTML entities so titles show real characters (e.g. en dash) instead of &#8211;.
@@ -42,7 +57,7 @@ final class Frontend {
 	 *
 	 * @return array{title:string,tracks:array<int, array{url:string,title:string,downloadable?:bool,downloadName?:string}>,artworkUrl?:string,artworkThumbUrl?:string,artworkAlt?:string}|\WP_Error
 	 */
-	public static function get_playlist_payload( int $post_id ) {
+	public static function get( int $post_id ) {
 		$post = get_post( $post_id );
 		if ( ! $post || Cpt::POST_TYPE !== $post->post_type ) {
 			return new \WP_Error( 'rm_pl_invalid', __( 'Invalid playlist.', 'rm-audio-playlist' ) );
@@ -133,48 +148,6 @@ final class Frontend {
 		}
 		return $out;
 	}
-
-	/**
-	 * Markup for one player instance.
-	 *
-	 * @param int    $id          Playlist post ID.
-	 * @param string $extra_class Extra CSS classes (sanitized as attribute).
-	 */
-	public static function render( int $id, string $extra_class = '' ): string {
-		if ( $id <= 0 ) {
-			return '';
-		}
-		$payload = self::get_playlist_payload( $id );
-		if ( is_wp_error( $payload ) || empty( $payload['tracks'] ) ) {
-			if ( is_user_logged_in() && current_user_can( 'edit_post', $id ) ) {
-				$msg = is_wp_error( $payload ) ? $payload->get_error_message() : __( 'Add at least one MP3 in the tracks repeater.', 'rm-audio-playlist' );
-				return '<p class="rm-audio-playlist--error">' . esc_html( $msg ) . '</p>';
-			}
-			return '';
-		}
-		$json = wp_json_encode(
-			$payload,
-			JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
-		);
-		$uid = 'rm-pl-' . $id . '-' . (string) wp_unique_id( 'a' );
-		$cls = 'rm-audio-playlist' . ( '' !== $extra_class ? ' ' . esc_attr( $extra_class ) : '' );
-		ob_start();
-		?>
-		<div
-			class="<?php echo esc_attr( $cls ); ?>"
-			id="<?php echo esc_attr( $uid ); ?>"
-			data-rm-playlist="<?php echo esc_attr( (string) $json ); ?>"
-		>
-			<div class="rm-audio-playlist__noscript">
-				<p><strong><?php echo esc_html( $payload['title'] ); ?></strong></p>
-				<ol>
-					<?php foreach ( $payload['tracks'] as $t ) : ?>
-					<li><a href="<?php echo esc_url( $t['url'] ); ?>"><?php echo esc_html( $t['title'] ); ?></a></li>
-					<?php endforeach; ?>
-				</ol>
-			</div>
-		</div>
-		<?php
-		return (string) ob_get_clean();
-	}
 }
+
+new Playlist_Payload();

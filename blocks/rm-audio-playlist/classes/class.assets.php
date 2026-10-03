@@ -17,8 +17,6 @@ namespace Rm_Audio_Playlist;
  */
 final class Assets {
 
-	private static ?self $instance = null;
-
 	private bool $debug;
 
 	private string $plugin_path;
@@ -32,7 +30,6 @@ final class Assets {
 	private bool $admin_enqueued = false;
 
 	public function __construct() {
-		self::$instance    = $this;
 		$this->debug       = function_exists( 'wp_get_environment_type' ) && 'local' === wp_get_environment_type();
 		$this->plugin_path = RM_AUDIO_PLAYLIST_DIR;
 		$this->plugin_url  = RM_AUDIO_PLAYLIST_URL;
@@ -40,13 +37,14 @@ final class Assets {
 		$this->build_url   = $this->plugin_url . 'assets/build';
 
 		add_action( 'init', array( $this, 'maybe_build_assets' ), 5 );
+		add_action( 'rm_audio_playlist_enqueue_admin', array( $this, 'on_enqueue_admin' ) );
 	}
 
-	public static function enqueue_admin(): void {
-		if ( null === self::$instance ) {
-			return;
-		}
-		self::$instance->do_enqueue_admin();
+	/**
+	 * Hook: enqueue admin CSS/JS for the playlist edit screen.
+	 */
+	public function on_enqueue_admin(): void {
+		$this->do_enqueue_admin();
 	}
 
 	public function maybe_build_assets(): void {

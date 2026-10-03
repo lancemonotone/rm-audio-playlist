@@ -54,7 +54,7 @@ final class Block_Registration {
 	}
 
 	/**
-	 * Load class.block.php + classes/class.*.php for every block folder (early, for CPT/activation).
+	 * Load class.block.php + classes/class.*.php for every block folder.
 	 */
 	private function load_all_block_php(): void {
 		foreach ( $this->block_folders() as $block_folder ) {

@@ -28,6 +28,7 @@ final class Upload_Dir {
 
 	public function __construct() {
 		add_filter( 'upload_dir', array( self::class, 'filter_upload_dir' ), 99 );
+		add_action( 'rm_audio_playlist_activate', array( self::class, 'ensure_base_folder' ) );
 	}
 
 	/**

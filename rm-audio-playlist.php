@@ -27,11 +27,10 @@ foreach ( glob( RM_AUDIO_PLAYLIST_DIR . 'classes/class.*.php' ) as $filename ) {
 }
 
 /**
- * Activation: register CPT, ensure upload base, flush rewrites.
+ * Activation: block packages (and other listeners) handle feature setup via hook.
  */
 function rm_audio_playlist_activate(): void {
-	\Rm_Audio_Playlist\Cpt::register();
-	\Rm_Audio_Playlist\Upload_Dir::ensure_base_folder();
+	do_action( 'rm_audio_playlist_activate' );
 	flush_rewrite_rules( true );
 }
 
