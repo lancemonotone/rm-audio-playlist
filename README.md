@@ -194,7 +194,6 @@ Scripts live under `assets/src/front/js/`. They share `window.RmAudioPlaylist`. 
 | `01b-utils.js` | Time format, shuffle helper |
 | `02-player-core.js` | `PlayerBlock` constructor, advance guards |
 | `03-player-build.js` | Build player DOM |
-| `04-tooltips.js` | Floating tips |
 | `05-queue.js` | Queue list / reorder |
 | `06-controls-ui.js` | Button / mode UI |
 | `07-audio-input.js` | Audio events, keyboard, volume, progress |
