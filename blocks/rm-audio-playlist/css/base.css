@@ -6,14 +6,7 @@
   --rm-border: #e3e0d8;
   --rm-text: #121212;
   --rm-muted: #5f5d59;
-  /*
-   * Accent inherits theme `--accent` when the host theme defines it
-   * (e.g. on :root). `var(--accent, …)` only uses the second argument
-   * if `--accent` is missing or invalid — so standalone installs keep
-   * the plugin teal, and themed sites (rm-portfolio, etc.) match brand.
-   * `--rm-accent-2` / `--rm-glow` derive from `--rm-accent` so both
-   * paths stay in sync without a second theme token.
-   */
+  /* Prefer host `--accent` when set; otherwise plugin teal. */
   --rm-accent: var(--accent, #0d6e5c);
   --rm-accent-2: color-mix(in srgb, var(--rm-accent) 78%, #000);
   --rm-glow: color-mix(in srgb, var(--rm-accent) 12%, transparent);
@@ -56,7 +49,7 @@
     --rm-border: #2e2e2a;
     --rm-text: #f2f1ee;
     --rm-muted: #a8a6a0;
-    /* Same theme `--accent` preference; teal fallback for dark-only installs. */
+    /* Same `--accent` preference; teal fallback. */
     --rm-accent: var(--accent, #3ecfae);
     --rm-accent-2: color-mix(in srgb, var(--rm-accent) 72%, #fff);
     --rm-glow: color-mix(in srgb, var(--rm-accent) 15%, transparent);

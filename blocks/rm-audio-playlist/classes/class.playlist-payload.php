@@ -30,10 +30,7 @@ final class Playlist_Payload {
 	}
 
 	/**
-	 * Strip tags and decode HTML entities so titles show real characters (e.g. en dash) instead of &#8211;.
-	 *
-	 * Note: {@see wp_specialchars_decode()} only handles a small subset (amp, lt, quotes, etc.) and does not
-	 * decode numeric entities like &#8211;; use html_entity_decode() with UTF-8.
+	 * Strip tags and decode HTML entities (including numeric entities like &#8211;).
 	 *
 	 * @param string $text Raw title from post/ACF.
 	 */

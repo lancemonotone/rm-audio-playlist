@@ -3,6 +3,7 @@
  * Discovers each blocks subfolder: loads block PHP, registers block types.
  *
  * Field groups load from JSON via {@see Acf}.
+ * Paths and category identity come from {@see Config}.
  *
  * @package Rm_Audio_Playlist
  */
@@ -12,20 +13,21 @@ declare(strict_types=1);
 namespace Rm_Audio_Playlist;
 
 /**
- * Heart & Soil / rm-blocks style block folder registration.
+ * Block folder discovery and registration.
  */
 final class Block_Registration {
 
-	public const CATEGORY = 'rm-audio-playlist';
+	private Config $config;
 
-	public function __construct() {
+	public function __construct( ?Config $config = null ) {
+		$this->config = $config ?? Config::get();
 		$this->load_all_block_php();
 		add_action( 'acf/init', array( $this, 'register_blocks' ), 10 );
 		add_filter( 'block_categories_all', array( $this, 'register_block_categories' ), 5, 2 );
 	}
 
 	/**
-	 * Put RM Audio Playlist first in the block inserter.
+	 * Register this plugin's block category.
 	 *
 	 * @param array<int, array<string, mixed>> $block_categories     Categories.
 	 * @param mixed                             $block_editor_context Editor context.
@@ -36,8 +38,8 @@ final class Block_Registration {
 		array_unshift(
 			$block_categories,
 			array(
-				'slug'  => self::CATEGORY,
-				'title' => __( 'RM Audio Playlist', 'rm-audio-playlist' ),
+				'slug'  => $this->config->block_category(),
+				'title' => $this->config->block_category_title(),
 				'icon'  => null,
 			)
 		);
@@ -66,7 +68,7 @@ final class Block_Registration {
 	 * @return list<string>
 	 */
 	private function block_folders(): array {
-		$blocks_dir = RM_AUDIO_PLAYLIST_DIR . 'blocks';
+		$blocks_dir = $this->config->dir() . 'blocks';
 		if ( ! is_dir( $blocks_dir ) ) {
 			return array();
 		}

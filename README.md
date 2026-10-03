@@ -101,17 +101,18 @@ Accent color inherits theme `--accent` when defined; otherwise a plugin teal fal
 ## Architecture
 
 ```text
-rm-audio-playlist.php          Bootstrap: path constants, class glob, activate (hook) / deactivate
-classes/                       Shell loaders only (block-agnostic)
+rm-audio-playlist.php          Bootstrap: Config::init, class glob, activate hook
+classes/                       Plugin-wide loaders (use Config)
+  class.config.php             Paths, version, textdomain, block category
   class.acf.php                Loads each block's fields.json + acf-json/
   class.block-registration.php Discovers blocks/*, loads block PHP, registers types
-blocks/rm-audio-playlist/      The playlist product (CPT + admin + player)
+blocks/rm-audio-playlist/      Playlist CPT, admin, and player block
   block.json                   Registration + front style/script lists
   fields.json                  Block sidebar fields
   acf-json/                    CPT field groups (group_*.json)
   template.php                 Block render (player markup via filter)
   class.block.php              Section shell helpers
-  classes/                     Playlist PHP (self-boot; collaborate via hooks)
+  classes/                     Playlist PHP (self-instantiate; hooks between classes)
     class.constants.php        Slug, admin handle, ACF field name/key IDs
     class.cpt.php              Audio playlists CPT (+ activate hook)
     class.upload-dir.php       Scoped upload directory (+ activate hook)

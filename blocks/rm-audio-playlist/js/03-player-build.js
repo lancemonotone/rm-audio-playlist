@@ -132,7 +132,7 @@
       "rm-audio-playlist__pl-name",
       this.playlistTitle,
     );
-    this._nowTitle = _create("p", "rm-audio-playlist__track-line", "—", {
+    this._nowTitle = _create("p", "rm-audio-playlist__track-line", "\u2026", {
       "aria-label": "Current track",
     });
     this._elTrackIndex = _create("p", "rm-audio-playlist__index-line", "");
@@ -200,7 +200,7 @@
         function () {
           self._prev();
         },
-        "Previous track — or restart this one if you’re a few seconds in.",
+        "Previous track, or restart this one if you’re a few seconds in.",
       ),
     );
     this._playBtn = self._iconBtn(
@@ -328,7 +328,7 @@
     );
     speedTip.setAttribute(
       "data-rm-tip",
-      "Playback speed — useful for talks, practice, or skimming. Normal is 1×.",
+      "Playback speed. Useful for talks, practice, or skimming. Normal is 1×.",
     );
     SPEEDS.forEach(function (s) {
       var o = document.createElement("option");

@@ -1,6 +1,6 @@
 <?php
 /**
- * Block helpers for acf/rm-audio-playlist (shell markup).
+ * Block wrapper helpers for acf/rm-audio-playlist.
  *
  * @package Rm_Audio_Playlist
  */
@@ -10,7 +10,7 @@ declare(strict_types=1);
 namespace Rm_Audio_Playlist;
 
 /**
- * Playlist block field names and section shell.
+ * Playlist block field name and section wrapper.
  */
 final class Playlist_Block {
 
@@ -18,9 +18,6 @@ final class Playlist_Block {
 
 	/**
 	 * Open section landmark with layout class + block supports (anchor / className).
-	 *
-	 * Non–front-page views: theme `main.php` owns `.container.entry`. Do not nest another
-	 * `.container` here (Music page and similar).
 	 *
 	 * @param array<string, mixed> $block Block instance.
 	 */

@@ -1,6 +1,6 @@
 <?php
 /**
- * Playlist track-row domain ops (clear files, bulk downloadable).
+ * Clear playlist tracks and bulk downloadable settings.
  *
  * @package Rm_Audio_Playlist
  */
@@ -10,7 +10,7 @@ declare(strict_types=1);
 namespace Rm_Audio_Playlist;
 
 /**
- * Mutates the tracks repeater and playlist-scoped attachments.
+ * Tracks repeater and playlist-scoped attachment updates.
  */
 final class Playlist_Tracks {
 

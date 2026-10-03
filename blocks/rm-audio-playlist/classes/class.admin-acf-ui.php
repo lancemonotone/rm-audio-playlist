@@ -10,7 +10,7 @@ declare(strict_types=1);
 namespace Rm_Audio_Playlist;
 
 /**
- * CPT field chrome only; enqueue and domain state via hooks/filters.
+ * Playlist edit-screen ACF toolbar and admin script data.
  */
 final class Admin_Acf_Ui {
 
@@ -58,7 +58,7 @@ final class Admin_Acf_Ui {
 	}
 
 	/**
-	 * Reset tracks — description column.
+	 * Reset tracks: description column.
 	 *
 	 * @param array<string, mixed> $field ACF field array.
 	 */
@@ -82,7 +82,7 @@ final class Admin_Acf_Ui {
 	}
 
 	/**
-	 * Reset tracks — remove MP3s column.
+	 * Reset tracks: remove MP3s column.
 	 *
 	 * @param array<string, mixed> $field ACF field array.
 	 */
@@ -109,7 +109,7 @@ final class Admin_Acf_Ui {
 	}
 
 	/**
-	 * Reset tracks — bulk allow download column.
+	 * Reset tracks: bulk allow download column.
 	 *
 	 * @param array<string, mixed> $field ACF field array.
 	 */

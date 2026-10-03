@@ -10,7 +10,7 @@ declare(strict_types=1);
 namespace Rm_Audio_Playlist;
 
 /**
- * HTTP surface only; domain work via filters.
+ * Playlist admin REST routes.
  */
 final class Rest {
 

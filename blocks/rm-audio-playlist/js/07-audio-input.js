@@ -142,7 +142,7 @@
     document.addEventListener("keydown", this._bind);
     this.root.addEventListener("click", function (e) {
       var t = e.target;
-      /* Do not steal focus from selects/inputs/slider — native <select> closes if blurred. */
+      /* Skip focus steal on selects/inputs/slider; native select closes if blurred. */
       if (t && typeof t.closest === "function") {
         if (
           t.closest("select") ||

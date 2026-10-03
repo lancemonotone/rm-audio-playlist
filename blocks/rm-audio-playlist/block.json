@@ -3,7 +3,7 @@
 	"apiVersion": 3,
 	"name": "acf/rm-audio-playlist",
 	"title": "Audio playlist",
-	"description": "RM Audio Playlist player — pick a playlist from the sidebar.",
+	"description": "RM Audio Playlist player. Pick a playlist from the sidebar.",
 	"category": "rm-audio-playlist",
 	"icon": "playlist-audio",
 	"keywords": ["audio", "playlist", "music", "mp3", "rm"],

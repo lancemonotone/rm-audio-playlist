@@ -154,7 +154,7 @@
         if (t.downloadName) {
           dlA.setAttribute("download", t.downloadName);
         }
-        dlA.setAttribute("aria-label", "Download — " + t.title);
+        dlA.setAttribute("aria-label", "Download: " + t.title);
         dlA.setAttribute("data-rm-tip", "Download this track (MP3).");
         dlA.appendChild(_svg(SVG.dl));
         li.appendChild(dlA);

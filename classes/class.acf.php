@@ -10,16 +10,19 @@ declare(strict_types=1);
 namespace Rm_Audio_Playlist;
 
 /**
- * Registers local field groups from JSON under blocks/ (rm-blocks pattern).
+ * Registers local field groups from JSON under blocks/.
  */
 final class Acf {
+
+	private Config $config;
 
 	/**
 	 * @var array<string, true>
 	 */
 	private array $registered_groups = array();
 
-	public function __construct() {
+	public function __construct( ?Config $config = null ) {
+		$this->config = $config ?? Config::get();
 		add_action( 'acf/init', array( $this, 'register_field_groups' ), 5 );
 	}
 
@@ -28,7 +31,7 @@ final class Acf {
 			return;
 		}
 
-		$blocks_dir = RM_AUDIO_PLAYLIST_DIR . 'blocks';
+		$blocks_dir = $this->config->dir() . 'blocks';
 		if ( ! is_dir( $blocks_dir ) ) {
 			return;
 		}

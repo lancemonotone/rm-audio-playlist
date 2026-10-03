@@ -10,7 +10,7 @@ declare(strict_types=1);
 namespace Rm_Audio_Playlist;
 
 /**
- * Renders player shell; payload via filter.
+ * Public player HTML.
  */
 final class Player_Render {
 

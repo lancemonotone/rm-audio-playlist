@@ -75,7 +75,7 @@
     this._shufBtn.setAttribute(
       "data-rm-tip",
       this.shuffle
-        ? "Shuffle is on — order is random. Click to play in the original list order again."
+        ? "Shuffle is on. Order is random. Click to play in the original list order again."
         : "Shuffle playback order. The current track is kept first when you turn this on, then the rest is mixed.",
     );
     var cur = this._shufBtn.querySelector("svg");

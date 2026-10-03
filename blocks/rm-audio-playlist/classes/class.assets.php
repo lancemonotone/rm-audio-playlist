@@ -1,9 +1,7 @@
 <?php
 /**
- * Admin asset build + lazy enqueue. No npm. No jQuery.
- *
- * Front player CSS/JS live on the block (block.json style/script). Admin assets
- * use manifests under assets/src/admin/; when not local, minify into assets/build/.
+ * Admin asset build and enqueue from assets/src/admin manifests.
+ * Non-local environments minify into assets/build/.
  *
  * @package Rm_Audio_Playlist
  */
@@ -13,7 +11,7 @@ declare(strict_types=1);
 namespace Rm_Audio_Playlist;
 
 /**
- * @see file docblock
+ * Admin asset build and enqueue.
  */
 final class Assets {
 
@@ -29,10 +27,11 @@ final class Assets {
 
 	private bool $admin_enqueued = false;
 
-	public function __construct() {
+	public function __construct( ?Config $config = null ) {
+		$config            = $config ?? Config::get();
 		$this->debug       = function_exists( 'wp_get_environment_type' ) && 'local' === wp_get_environment_type();
-		$this->plugin_path = RM_AUDIO_PLAYLIST_DIR;
-		$this->plugin_url  = RM_AUDIO_PLAYLIST_URL;
+		$this->plugin_path = $config->dir();
+		$this->plugin_url  = $config->url();
 		$this->build_path  = $this->plugin_path . 'assets/build';
 		$this->build_url   = $this->plugin_url . 'assets/build';
 
