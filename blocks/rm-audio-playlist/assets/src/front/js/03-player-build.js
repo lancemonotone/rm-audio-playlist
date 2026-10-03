@@ -3,7 +3,6 @@
   "use strict";
   var STORAGE_VOL = ns.STORAGE_VOL;
   var SPEEDS = ns.SPEEDS;
-  var DISABLE_TOOLTIPS = ns.DISABLE_TOOLTIPS;
   var SVG = ns.SVG;
   var rptSvg = ns.rptSvg;
   var _svg = ns._svg;
@@ -153,11 +152,6 @@
     bar.setAttribute("aria-valuenow", "0");
     bar.setAttribute("aria-valuetext", "0:00 of 0:00");
     bar.setAttribute("tabindex", "0");
-    bar.classList.add("rm-audio-playlist--has-tip");
-    bar.setAttribute(
-      "data-rm-tip",
-      "Click or drag to jump to a position in the current track.",
-    );
     var timeBar = _create("div", "rm-audio-playlist__timebar", "");
     this._tCur = _create("span", "rm-audio-playlist__time-cur", "0:00");
     var track = _create("div", "rm-audio-playlist__progress-track", "");
@@ -193,15 +187,9 @@
 
     var transport = _create("div", "rm-audio-playlist__transport", "");
     transport.appendChild(
-      self._iconBtn(
-        "Previous track",
-        "rm-audio-pl-prev",
-        SVG.prev,
-        function () {
-          self._prev();
-        },
-        "Previous track, or restart this one if you’re a few seconds in.",
-      ),
+      self._iconBtn("Previous track", "rm-audio-pl-prev", SVG.prev, function () {
+        self._prev();
+      }),
     );
     this._playBtn = self._iconBtn(
       "Play",
@@ -210,19 +198,12 @@
       function () {
         self._toggle();
       },
-      "Start playing this list.",
     );
     transport.appendChild(this._playBtn);
     transport.appendChild(
-      self._iconBtn(
-        "Next track",
-        "rm-audio-pl-next",
-        SVG.next,
-        function () {
-          self._next();
-        },
-        "Next track in the list (or follow repeat rules).",
-      ),
+      self._iconBtn("Next track", "rm-audio-pl-next", SVG.next, function () {
+        self._next();
+      }),
     );
     controlsFg.appendChild(transport);
 
@@ -233,12 +214,12 @@
       "",
     );
     skipNeg.appendChild(
-      self._skipBtn("-30", "Jump back 30 seconds in this track", function () {
+      self._skipBtn("-30", "Jump back 30 seconds", function () {
         self._seekRel(-30);
       }),
     );
     skipNeg.appendChild(
-      self._skipBtn("-10", "Jump back 10 seconds in this track", function () {
+      self._skipBtn("-10", "Jump back 10 seconds", function () {
         self._seekRel(-10);
       }),
     );
@@ -248,22 +229,14 @@
       "",
     );
     skipPos.appendChild(
-      self._skipBtn(
-        "+10",
-        "Jump forward 10 seconds in this track",
-        function () {
-          self._seekRel(10);
-        },
-      ),
+      self._skipBtn("+10", "Jump forward 10 seconds", function () {
+        self._seekRel(10);
+      }),
     );
     skipPos.appendChild(
-      self._skipBtn(
-        "+30",
-        "Jump forward 30 seconds in this track",
-        function () {
-          self._seekRel(30);
-        },
-      ),
+      self._skipBtn("+30", "Jump forward 30 seconds", function () {
+        self._seekRel(30);
+      }),
     );
     skipCorners.appendChild(skipNeg);
     skipCorners.appendChild(skipPos);
@@ -277,13 +250,14 @@
         self._resizeWaveformCanvas();
       });
       self._waveResizeObs.observe(controlsStack);
+    } else {
+      window.addEventListener(
+        "resize",
+        self._resizeWaveformCanvasBound ||
+          (self._resizeWaveformCanvasBound =
+            self._resizeWaveformCanvas.bind(self)),
+      );
     }
-    window.addEventListener(
-      "resize",
-      self._resizeWaveformCanvasBound ||
-        (self._resizeWaveformCanvasBound =
-          self._resizeWaveformCanvas.bind(self)),
-    );
     requestAnimationFrame(function () {
       self._resizeWaveformCanvas();
       self._drawWaveformIdle();
@@ -297,7 +271,6 @@
       function () {
         self._toggleShuffle();
       },
-      "Shuffle playback order. When you turn it on, the list reshuffles and keeps the current track first.",
     );
     this._rptBtn = self._iconBtn(
       "Repeat off",
@@ -306,7 +279,6 @@
       function () {
         self._cycleRepeat();
       },
-      "Click to cycle: no repeat → repeat the whole list → repeat one track → off.",
     );
     toolbar.appendChild(this._shufBtn);
     toolbar.appendChild(this._rptBtn);
@@ -321,15 +293,7 @@
     sel.id = sid;
     sel.className = "rm-audio-playlist__select";
     sel.setAttribute("aria-label", "Playback speed");
-    var speedTip = _create(
-      "span",
-      "rm-audio-playlist--has-tip rm-audio-playlist__wrap",
-      "",
-    );
-    speedTip.setAttribute(
-      "data-rm-tip",
-      "Playback speed. Useful for talks, practice, or skimming. Normal is 1×.",
-    );
+    var speedWrap = _create("span", "rm-audio-playlist__wrap", "");
     SPEEDS.forEach(function (s) {
       var o = document.createElement("option");
       o.value = String(s);
@@ -341,8 +305,8 @@
       self.audio.playbackRate = parseFloat(sel.value, 10) || 1;
     });
     this._speed = sel;
-    speedTip.appendChild(sel);
-    speed.appendChild(speedTip);
+    speedWrap.appendChild(sel);
+    speed.appendChild(speedWrap);
     toolbar.appendChild(speed);
 
     var vol = document.createElement("div");
@@ -359,7 +323,6 @@
         self.audio.muted = !self.audio.muted;
         self._syncMuteUi();
       },
-      "Mute or unmute. Volume is saved in this browser. Keyboard: M when the player is focused.",
     );
     this._muteBtn.setAttribute("aria-pressed", "false");
     this._syncMuteUi = function () {
@@ -379,12 +342,6 @@
         "aria-label",
         self.audio.muted ? "Unmute" : "Mute",
       );
-      self._muteBtn.setAttribute(
-        "data-rm-tip",
-        self.audio.muted
-          ? "Unmute (restore the level from the slider)."
-          : "Mute. You can also drag the slider all the way left.",
-      );
     };
     var rng = document.createElement("input");
     rng.type = "range";
@@ -395,14 +352,10 @@
     rng.step = "0.01";
     rng.value = String(self._getStoredVolume());
     rng.setAttribute("aria-label", "Volume");
-    var volTip = _create(
+    var volWrap = _create(
       "span",
-      "rm-audio-playlist--has-tip rm-audio-playlist__wrap rm-audio-playlist__wrap--grow",
+      "rm-audio-playlist__wrap rm-audio-playlist__wrap--grow",
       "",
-    );
-    volTip.setAttribute(
-      "data-rm-tip",
-      "Volume. Level is saved for next time in this browser (same site).",
     );
     rng.addEventListener("input", function () {
       var v = parseFloat(rng.value, 10);
@@ -413,30 +366,22 @@
       try {
         localStorage.setItem(STORAGE_VOL, String(v));
       } catch (e) {
-        /* ignore */
+        /* private mode / blocked storage */
       }
     });
     this._vol = rng;
-    volTip.appendChild(rng);
+    volWrap.appendChild(rng);
     volInner.appendChild(this._muteBtn);
-    volInner.appendChild(volTip);
+    volInner.appendChild(volWrap);
     vol.appendChild(volInner);
     toolbar.appendChild(vol);
     wrap.appendChild(toolbar);
 
     var det = document.createElement("details");
     det.className = "rm-audio-playlist__kbd";
-    var sum = _create(
-      "summary",
-      "rm-audio-playlist__kbd-summary rm-audio-playlist--has-tip",
-      "Keyboard shortcuts",
-      {},
+    det.appendChild(
+      _create("summary", "rm-audio-playlist__kbd-summary", "Keyboard shortcuts"),
     );
-    sum.setAttribute(
-      "data-rm-tip",
-      "Expand to read keys: Space, arrows, N/P, M. The player must be focused (click it first).",
-    );
-    det.appendChild(sum);
     det.appendChild(
       _create(
         "p",
@@ -451,24 +396,16 @@
     });
     this._list = list;
     var qWrap = _create("div", "rm-audio-playlist__queue", "");
-    var qh = _create("p", "rm-audio-playlist__queue-h", "Up next");
-    qWrap.appendChild(qh);
+    qWrap.appendChild(_create("p", "rm-audio-playlist__queue-h", "Up next"));
     qWrap.appendChild(list);
     wrap.appendChild(qWrap);
 
     this._rebuildQueueList();
-
     this._setShuffleUi();
     this._setRepeatUi();
     this._updateIndexLine();
     this._setPlayStateUi(false);
     this._syncMuteUi();
-
-    this._ensureFloatTip();
-    if (!DISABLE_TOOLTIPS) {
-      this._wireFloatTipsDelegated();
-    }
-
     this._wireAudio();
     this._wireProgress(bar);
     this._load(0, false);

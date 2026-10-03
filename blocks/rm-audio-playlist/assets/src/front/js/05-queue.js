@@ -41,11 +41,7 @@
       );
       var h = row && row.querySelector(".rm-audio-playlist__item-handle");
       if (h) {
-        try {
-          h.focus();
-        } catch (e) {
-          /* ignore */
-        }
+        h.focus();
       }
     });
   };
@@ -71,8 +67,7 @@
       var canDrag = !self.shuffle;
       var handle = document.createElement("button");
       handle.type = "button";
-      handle.className =
-        "rm-audio-playlist__item-handle rm-audio-playlist--has-tip";
+      handle.className = "rm-audio-playlist__item-handle";
       handle.setAttribute("draggable", canDrag ? "true" : "false");
       handle.setAttribute(
         "aria-label",
@@ -80,19 +75,10 @@
           ? "Reorder " + t.title + ". Alt+Arrow Up or Down, or drag."
           : "Reordering is off while shuffle is on",
       );
-      handle.setAttribute(
-        "data-rm-tip",
-        canDrag
-          ? "Drag to move, or focus and press Alt+Arrow Up / Down"
-          : "Turn shuffle off to reorder tracks",
-      );
       handle.disabled = !canDrag;
       handle.appendChild(_svg(SVG.grip));
       handle.addEventListener("keydown", function (e) {
-        if (!canDrag) {
-          return;
-        }
-        if (!e.altKey) {
+        if (!canDrag || !e.altKey) {
           return;
         }
         if (e.key === "ArrowUp") {
@@ -115,7 +101,7 @@
         try {
           e.dataTransfer.setData("application/x-rm-pl", String(qi));
         } catch (err) {
-          /* ignore */
+          /* some browsers reject custom MIME types */
         }
       });
       handle.addEventListener("dragend", function () {
@@ -137,8 +123,7 @@
       );
 
       var b = document.createElement("a");
-      b.className = "rm-audio-playlist__item-title rm-audio-playlist--has-tip";
-      b.setAttribute("data-rm-tip", "Play now");
+      b.className = "rm-audio-playlist__item-title";
       b.href = t.url;
       b.appendChild(document.createTextNode(t.title));
       b.addEventListener("click", function (ev) {
@@ -149,13 +134,12 @@
 
       if (t.downloadable) {
         var dlA = document.createElement("a");
-        dlA.className = "rm-audio-playlist__item-dl rm-audio-playlist--has-tip";
+        dlA.className = "rm-audio-playlist__item-dl";
         dlA.href = t.url;
         if (t.downloadName) {
           dlA.setAttribute("download", t.downloadName);
         }
         dlA.setAttribute("aria-label", "Download: " + t.title);
-        dlA.setAttribute("data-rm-tip", "Download this track (MP3).");
         dlA.appendChild(_svg(SVG.dl));
         li.appendChild(dlA);
       }

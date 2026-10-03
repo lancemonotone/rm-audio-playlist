@@ -2,8 +2,6 @@
 (function (ns) {
   "use strict";
   var PlayerBlock = ns.PlayerBlock;
-  var SVG = ns.SVG;
-  var _svg = ns._svg;
   var _shuffle = ns._shuffle;
   var _fmtTime = ns._fmtTime;
 
@@ -38,11 +36,7 @@
     if (this.shuffle) {
       var curT = this.order[this.oi];
       this.order = _shuffle(this.tracks.length);
-      /*
-       * If shuffle is enabled before the user has actually started playback, we should let the
-       * first track be randomized too. Once playback has started (or the user has progressed),
-       * keep the current track pinned as the first item so shuffle doesn't interrupt them.
-       */
+      /* After play started: pin current track first. Before: randomize including first. */
       if (this._userStarted) {
         var at = this.order.indexOf(curT);
         if (at > 0) {
@@ -51,10 +45,10 @@
           this.order[at] = tmp;
         }
         this.oi = 0;
-		} else {
-			this.oi = 0;
-			this._load(this.oi, false);
-		}
+      } else {
+        this.oi = 0;
+        this._load(this.oi, false);
+      }
     } else {
       var playingTid = this.order[this.oi];
       this.order = this.tracks.map(function (_, i) {
@@ -113,10 +107,7 @@
     this._setStatus("Loading…");
     this._setPlayStateUi(false);
     this.audio.load();
-    /*
-     * Load timeout watchdog: if we never reach canplay/playing, retry once, then skip.
-     * (Prevents “Loading…” hanging indefinitely.)
-     */
+    /* If canplay/playing never fire: retry once, then skip. */
     var token = this._advToken;
     function watchdogTick() {
       if (self._advToken !== token) {
@@ -261,18 +252,11 @@
     document.body.style.overflow = "";
     document.removeEventListener("keydown", this._boundLightboxEsc, true);
     if (this._artBtn) {
-      try {
-        this._artBtn.focus();
-      } catch (err) {
-        /* ignore */
-      }
+      this._artBtn.focus();
     }
   };
 
-  /**
-   * @param {string} s Status text; empty hides the line (see CSS :empty).
-   * @param {number} [dismissAfterMs] If set, clear this message after N ms if unchanged (ephemeral feedback).
-   */
+  /** @param {string} s Empty hides the line (CSS :empty). @param {number} [dismissAfterMs] */
   PlayerBlock.prototype._setStatus = function (s, dismissAfterMs) {
     if (this._statusDismissTimer) {
       clearTimeout(this._statusDismissTimer);

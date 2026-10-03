@@ -3,8 +3,6 @@
   "use strict";
   var PlayerBlock = ns.PlayerBlock;
   var STORAGE_VOL = ns.STORAGE_VOL;
-  var SVG = ns.SVG;
-  var _svg = ns._svg;
   var _fmtTime = ns._fmtTime;
 
   PlayerBlock.prototype._wireAudio = function () {
@@ -15,12 +13,18 @@
         self._loadWatchdogTimer = 0;
       }
     }
+    function clearLoadStatus() {
+      if (
+        self._status &&
+        (self._status.textContent === "Loading…" ||
+          self._status.textContent === "Buffering…")
+      ) {
+        self._setStatus("");
+      }
+    }
     this.audio.addEventListener("timeupdate", function () {
       self._tick();
-      /*
-       * Near-end watchdog: some browsers/devices occasionally miss "ended".
-       * If we're within ε seconds of the end, advance once.
-       */
+      /* Near-end: some browsers miss "ended"; advance once within ε of end. */
       if (self.repeat === "one") {
         return;
       }
@@ -28,8 +32,7 @@
       if (!isFinite(d) || d <= 0 || self.audio.seeking) {
         return;
       }
-      var eps = 0.25;
-      if (self.audio.currentTime >= d - eps) {
+      if (self.audio.currentTime >= d - 0.25) {
         if (self.oi < self.order.length - 1) {
           self._advanceOnce(self.oi + 1);
         } else if (self.repeat === "all") {
@@ -57,16 +60,11 @@
     });
     this.audio.addEventListener("canplay", function () {
       clearWatchdog();
+      clearLoadStatus();
     });
     this.audio.addEventListener("playing", function () {
       clearWatchdog();
-      if (
-        self._status &&
-        (self._status.textContent === "Loading…" ||
-          self._status.textContent === "Buffering…")
-      ) {
-        self._setStatus("");
-      }
+      clearLoadStatus();
       self._ensureWaveformGraph();
       if (self._audioCtx && self._audioCtx.state === "suspended") {
         self._audioCtx.resume().catch(function () {});
@@ -92,11 +90,7 @@
       }
     });
     this.audio.addEventListener("error", function () {
-      /*
-       * Error strategy:
-       * - Retry the same track once per load token (transient network/decode hiccups).
-       * - If it still fails, skip (guarded so we don't double-advance).
-       */
+      /* Retry once per load token, then skip (guarded). */
       clearWatchdog();
       if (self._loadRetryToken !== self._advToken) {
         self._loadRetryToken = self._advToken;
@@ -106,7 +100,7 @@
           var p = self.audio.play();
           if (p && p.catch) p.catch(function () {});
         } catch (e) {
-          /* ignore */
+          /* ignore decode/network throw */
         }
         return;
       }
@@ -129,20 +123,10 @@
     this.audio.addEventListener("waiting", function () {
       self._setStatus("Buffering…");
     });
-    this.audio.addEventListener("canplay", function () {
-      /* Ready to play (may still be paused). Clears “Loading…” from _load(..., false) on first paint. */
-      if (
-        self._status &&
-        (self._status.textContent === "Buffering…" ||
-          self._status.textContent === "Loading…")
-      ) {
-        self._setStatus("");
-      }
-    });
     document.addEventListener("keydown", this._bind);
     this.root.addEventListener("click", function (e) {
       var t = e.target;
-      /* Skip focus steal on selects/inputs/slider; native select closes if blurred. */
+      /* Don't steal focus from controls (select closes if blurred). */
       if (t && typeof t.closest === "function") {
         if (
           t.closest("select") ||
@@ -157,11 +141,7 @@
           return;
         }
       }
-      try {
-        self.root.focus();
-      } catch (err) {
-        /* ignore */
-      }
+      self.root.focus();
     });
   };
 
@@ -187,18 +167,10 @@
       this._toggle();
     } else if (e.code === "ArrowLeft") {
       e.preventDefault();
-      if (e.shiftKey) {
-        this._seekRel(-30);
-      } else {
-        this._seekRel(-10);
-      }
+      this._seekRel(e.shiftKey ? -30 : -10);
     } else if (e.code === "ArrowRight") {
       e.preventDefault();
-      if (e.shiftKey) {
-        this._seekRel(30);
-      } else {
-        this._seekRel(10);
-      }
+      this._seekRel(e.shiftKey ? 30 : 10);
     } else if (e.code === "ArrowUp") {
       e.preventDefault();
       this._volStep(0.05);
@@ -226,7 +198,7 @@
     try {
       localStorage.setItem(STORAGE_VOL, String(v));
     } catch (e) {
-      /* ignore */
+      /* private mode / blocked storage */
     }
   };
 

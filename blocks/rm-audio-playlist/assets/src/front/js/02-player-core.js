@@ -1,7 +1,6 @@
 /** PlayerBlock constructor and advance guards */
 (function (ns) {
   "use strict";
-  var _create = ns._create;
 
   /**
    * @param {HTMLElement} el
@@ -9,7 +8,7 @@
    * @param {string} data.title
    * @param {Array<{url:string, title:string, downloadable?: boolean, downloadName?: string}>} data.tracks
    * @param {string} [data.artworkUrl] Full-size image (lightbox).
-   * @param {string} [data.artworkThumbUrl] Smaller image for the cover chip (optional).
+   * @param {string} [data.artworkThumbUrl] Cover chip image.
    * @param {string} [data.artworkAlt]
    */
   function PlayerBlock(el, data) {
@@ -33,19 +32,14 @@
     this.oi = 0;
     this.repeat = "none";
     this.shuffle = false;
-    /* True once the user has actually started playback (used for shuffle UX). */
     this._userStarted = false;
     this.audio = new Audio();
     this.audio.preload = "auto";
-    /* Web Audio: required for cross-origin MP3 analysis (same-origin uploads are fine). */
     this.audio.crossOrigin = "anonymous";
     this._bind = this._onKeydown.bind(this);
     this._errTimer = 0;
     this._loadWatchdogTimer = 0;
     this._statusDismissTimer = 0;
-    this._floatTip = null;
-    this._floatTipTarget = null;
-    this._tipHideTimer = 0;
     this._dragFromQi = -1;
     this._audioCtx = null;
     this._analyser = null;
@@ -58,12 +52,7 @@
     this._waveCssW = 0;
     this._waveCssH = 0;
     this._waveResizeObs = null;
-    this._floatTipFromKeyboard = false;
-    this._focusTipTimer = 0;
-    /*
-     * Track-advance guard: multiple events (ended, near-end, error, timeout) can try to advance.
-     * We increment _advToken on each _load() and allow at most one advance per token.
-     */
+    /* Multiple events can try to advance; one advance per _load() token. */
     this._advToken = 0;
     this._advLockedToken = -1;
     this._loadRetryToken = -1;

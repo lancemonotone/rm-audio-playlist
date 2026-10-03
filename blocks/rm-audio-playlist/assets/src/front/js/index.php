@@ -13,7 +13,6 @@ return array(
 	'01b-utils.js',
 	'02-player-core.js',
 	'03-player-build.js',
-	'04-tooltips.js',
 	'05-queue.js',
 	'06-controls-ui.js',
 	'07-audio-input.js',
