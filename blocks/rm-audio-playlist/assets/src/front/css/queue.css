@@ -187,61 +187,6 @@
     display: block;
   }
 
-  /* ---- Tooltips: JS float layer only (follows pointer); no ::after ---- */
-  &.rm-audio-playlist--has-tip::after {
-    content: none !important;
-    display: none !important;
-  }
-
-  & .rm-audio-playlist__floattip {
-    position: fixed;
-    inset-inline-start: 0;
-    inset-block-start: 0;
-    z-index: 100000;
-    max-inline-size: min(16rem, 70vw);
-    padding-block: 0.5rem;
-    padding-inline: 0.65rem;
-    border-radius: var(--rm-tip-radius);
-    background: var(--rm-tip-bg);
-    color: var(--rm-tip-fg);
-    font-size: 0.72rem;
-    font-weight: 500;
-    line-height: 1.35;
-    text-align: start;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.18);
-    pointer-events: none;
-    opacity: 0;
-    visibility: hidden;
-    transform: translate3d(0, 0, 0);
-    transition:
-      opacity 0.2s ease,
-      transform 0.2s ease,
-      visibility 0s linear 0.2s;
-    /* Tooltips disabled (see JS flag): never show floating tooltip. */
-    display: none !important;
-
-    @media (prefers-reduced-motion: reduce) {
-      transition-duration: 0.01ms !important;
-    }
-  }
-
-  & .rm-audio-playlist__floattip.is-visible {
-    opacity: 1;
-    visibility: visible;
-    transition-delay: 0s;
-    transition-property: opacity, transform, visibility;
-  }
-
-  & .rm-audio-playlist__floattip.is-out {
-    opacity: 0;
-    visibility: visible;
-    transform: translate3d(0, 6px, 0);
-    transition:
-      opacity 0.22s ease,
-      transform 0.22s ease,
-      visibility 0s linear 0.22s;
-  }
-
   /* Wrappers for volume/speed (flex around select, range) */
   & .rm-audio-playlist__wrap {
     display: inline-flex;

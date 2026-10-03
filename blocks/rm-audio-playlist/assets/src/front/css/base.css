@@ -12,12 +12,9 @@
   --rm-glow: color-mix(in srgb, var(--rm-accent) 12%, transparent);
   --rm-radius: 16px;
   --rm-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 32px rgba(0, 0, 0, 0.06);
-  --rm-tip-bg: #1a1a18;
-  --rm-tip-fg: #faf9f6;
-  --rm-tip-radius: 10px;
-  --rm-pad-bs: 1.35rem;
-  --rm-pad-inline: 1.5rem;
-  --rm-pad-be: 1.5rem;
+  --rm-pad-bs: 1.1rem;
+  --rm-pad-inline: 1.1rem;
+  --rm-pad-be: 1.1rem;
   --rm-line-height: 1.45;
 
   container-type: inline-size;
@@ -55,18 +52,16 @@
     --rm-glow: color-mix(in srgb, var(--rm-accent) 15%, transparent);
     --rm-shadow:
       0 1px 0 rgba(255, 255, 255, 0.04), 0 12px 40px rgba(0, 0, 0, 0.4);
-    --rm-tip-bg: #f0efe8;
-    --rm-tip-fg: #1a1a18;
   }
 
   @media (min-width: 1024px) {
     --rm-line-height: 1.5;
   }
 
-  @container rm-playlist (max-inline-size: 24rem) {
-    --rm-pad-bs: 1.1rem;
-    --rm-pad-inline: 1.1rem;
-    --rm-pad-be: 1.1rem;
+  @container rm-playlist (min-inline-size: 24rem) {
+    --rm-pad-bs: 1.35rem;
+    --rm-pad-inline: 1.5rem;
+    --rm-pad-be: 1.5rem;
   }
 
   &.rm-audio-playlist--ready .rm-audio-playlist__noscript {

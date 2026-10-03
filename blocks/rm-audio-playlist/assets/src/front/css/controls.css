@@ -112,11 +112,13 @@
 
   /* Prev/next SVG paths sit off the visual center of the 24×24 viewBox; flex centers the box, not the glyph */
   & .rm-audio-pl-prev .rm-audio-playlist__icon {
-    transform: translateX(-0.12rem);
+    position: relative;
+    inset-inline-start: -0.12rem;
   }
 
   & .rm-audio-pl-next .rm-audio-playlist__icon {
-    transform: translateX(0.12rem);
+    position: relative;
+    inset-inline-start: 0.12rem;
   }
 
   & .rm-audio-playlist__play,
@@ -267,6 +269,7 @@
     background-color: var(--rm-surface);
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath fill='%23a8a6a0' d='M1.2 2.2 6 7l4.8-4.8'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
+    /* Physical `right`: logical bg-position keywords not broadly supported yet. */
     background-position: right 0.45rem center;
     background-size: 0.65rem 0.45rem;
     color: var(--rm-text);
@@ -306,14 +309,16 @@
   }
 
   & .rm-audio-playlist__range {
+    --rm-range-bs: 0.3rem;
+
     flex: 1;
-    block-size: 0.3rem;
+    block-size: var(--rm-range-bs);
     min-inline-size: 3rem;
     accent-color: var(--rm-accent);
     border-radius: 4px;
 
     @media (hover: none) and (pointer: coarse) {
-      block-size: 0.9rem;
+      --rm-range-bs: 0.9rem;
     }
   }
 }

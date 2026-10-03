@@ -101,8 +101,12 @@
     inset-inline-start: 0;
     inset-block: 0;
     inline-size: 0;
-    background: linear-gradient(90deg, var(--rm-accent-2), var(--rm-accent));
-    border-radius: 999px 0 0 999px;
+    /* Physical `to right`: logical gradient sides not broadly supported yet. */
+    background: linear-gradient(to right, var(--rm-accent-2), var(--rm-accent));
+    border-start-start-radius: 999px;
+    border-end-start-radius: 999px;
+    border-start-end-radius: 0;
+    border-end-end-radius: 0;
   }
 
   & .rm-audio-playlist__progress-thumb {
@@ -113,13 +117,13 @@
     inset-inline-start: 0;
     inline-size: var(--rm-progress-thumb);
     block-size: var(--rm-progress-thumb);
+    margin-block-start: calc(var(--rm-progress-thumb) / -2);
     margin-inline-start: calc(var(--rm-progress-thumb) / -2);
     background: #fff;
     border: 2px solid var(--rm-accent);
     border-radius: 50%;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
     pointer-events: none;
-    transform: translateY(-50%);
 
     @media (prefers-color-scheme: dark) {
       background: var(--rm-elev);
