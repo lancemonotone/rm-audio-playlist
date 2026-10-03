@@ -20,26 +20,5 @@
 		"className": true,
 		"jsx": true
 	},
-	"style": [
-		"file:./css/base.css",
-		"file:./css/art-lightbox.css",
-		"file:./css/progress.css",
-		"file:./css/controls.css",
-		"file:./css/queue.css"
-	],
-	"script": [
-		"file:./js/00-bootstrap.js",
-		"file:./js/01-icons-dom.js",
-		"file:./js/01b-utils.js",
-		"file:./js/02-player-core.js",
-		"file:./js/03-player-build.js",
-		"file:./js/04-tooltips.js",
-		"file:./js/05-queue.js",
-		"file:./js/06-controls-ui.js",
-		"file:./js/07-audio-input.js",
-		"file:./js/08-waveform.js",
-		"file:./js/09-playback.js",
-		"file:./js/10-init.js"
-	],
 	"version": "1.4.0"
 }

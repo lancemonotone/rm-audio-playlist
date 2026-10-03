@@ -149,7 +149,7 @@ final class Admin_Acf_Ui {
 			return;
 		}
 
-		do_action( 'rm_audio_playlist_enqueue_admin' );
+		do_action( Config::get()->hook( 'enqueue_admin' ), 'rm-audio-playlist', Constants::HANDLE_ADMIN );
 
 		global $post;
 		$localize = array(

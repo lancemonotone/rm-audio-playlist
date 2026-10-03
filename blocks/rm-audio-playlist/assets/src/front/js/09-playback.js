@@ -51,11 +51,10 @@
           this.order[at] = tmp;
         }
         this.oi = 0;
-      } else {
-        // Start at the first item of the new shuffled order.
-        this.oi = 0;
-        this._load(this.oi, false);
-      }
+		} else {
+			this.oi = 0;
+			this._load(this.oi, false);
+		}
     } else {
       var playingTid = this.order[this.oi];
       this.order = this.tracks.map(function (_, i) {

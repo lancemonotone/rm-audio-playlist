@@ -1,5 +1,5 @@
 /**
- * RM Audio Playlist — admin: clear tracks, bulk allow download.
+ * Playlist admin: clear tracks, bulk allow download.
  */
 (function () {
 	"use strict";

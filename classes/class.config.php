@@ -70,7 +70,7 @@ final class Config {
 	 */
 	public static function init(array $args): self {
 		if (null !== self::$instance) {
-			throw new \LogicException('Rm_Audio_Playlist\\Config already initialized.');
+			throw new \LogicException( self::class . ' already initialized.' );
 		}
 		self::$instance = new self($args);
 		return self::$instance;
@@ -78,7 +78,7 @@ final class Config {
 
 	public static function get(): self {
 		if (null === self::$instance) {
-			throw new \LogicException('Rm_Audio_Playlist\\Config not initialized.');
+			throw new \LogicException( self::class . ' not initialized.' );
 		}
 		return self::$instance;
 	}
@@ -109,5 +109,16 @@ final class Config {
 
 	public function block_category_title(): string {
 		return (string) ($this->block_category_title)();
+	}
+
+	/**
+	 * Action/filter name: textdomain with hyphens as underscores, plus suffix.
+	 *
+	 * Example: textdomain `my-plugin` + `enqueue_admin` → `my_plugin_enqueue_admin`.
+	 */
+	public function hook( string $suffix ): string {
+		$prefix = str_replace( '-', '_', $this->textdomain );
+		$suffix = ltrim( $suffix, '_' );
+		return '' === $suffix ? $prefix : $prefix . '_' . $suffix;
 	}
 }

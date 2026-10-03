@@ -70,7 +70,7 @@ Uploads from other screens are unchanged. Clear-tracks only deletes files that l
 3. In the block sidebar, choose a playlist
 4. Preview / publish
 
-The player markup and assets load when the block is present on the page. CSS/JS are declared on the block (`block.json`) and are not enqueued site-wide.
+The player markup and assets load when the block is present on the page. CSS/JS attach as block handles (via plugin `Assets`), not site-wide.
 
 ### Editor notes
 
@@ -104,30 +104,20 @@ Accent color inherits theme `--accent` when defined; otherwise a plugin teal fal
 rm-audio-playlist.php          Bootstrap: Config::init, class glob, activate hook
 classes/                       Plugin-wide loaders (use Config)
   class.config.php             Paths, version, textdomain, block category
+  class.assets.php             Build/minify + block handle registration + admin enqueue
   class.acf.php                Loads each block's fields.json + acf-json/
   class.block-registration.php Discovers blocks/*, loads block PHP, registers types
 blocks/rm-audio-playlist/      Playlist CPT, admin, and player block
-  block.json                   Registration + front style/script lists
+  block.json                   Block registration (no asset file lists)
   fields.json                  Block sidebar fields
   acf-json/                    CPT field groups (group_*.json)
   template.php                 Block render (player markup via filter)
-  class.block.php              Section shell helpers
+  class.block.php              Section wrapper helpers
   classes/                     Playlist PHP (self-instantiate; hooks between classes)
-    class.constants.php        Slug, admin handle, ACF field name/key IDs
-    class.cpt.php              Audio playlists CPT (+ activate hook)
-    class.upload-dir.php       Scoped upload directory (+ activate hook)
-    class.mime.php             MP3 upload mime fixes
-    class.assets.php           Admin asset build; enqueue on action
-    class.rest.php             REST routes (domain via filters)
-    class.playlist-tracks.php  Clear tracks / bulk downloadable
-    class.track-titles.php     ID3 / filename title fill on save
-    class.admin-acf-ui.php     ACF toolbar UI + localize
-    class.playlist-payload.php Public player payload filter
-    class.player-render.php    Player markup filter
-  css/*.css                    Player styles (by concern)
-  js/*.js                      Player scripts (numbered load order)
-assets/src/admin/              Admin CSS/JS sources + manifests
-assets/build/                  Generated admin min bundles (gitignored)
+  assets/src/front/            Front player CSS/JS + manifests
+  assets/src/admin/            CPT edit-screen CSS/JS + manifests
+  assets/build/                Per-block min bundles (gitignored)
+assets/                        Optional plugin-level assets (same src/build layout)
 ```
 
 ### PHP boot
@@ -150,19 +140,20 @@ Block `Constants` holds field **name/key** strings for PHP callers.
 
 `Block_Registration` constructor loads each block's PHP immediately. On `acf/init` it registers types for folders with `block.json`.
 
-Front assets are listed in `block.json` (`style` / `script` arrays). Load order for JS is the array order (filenames are numbered for clarity only).
+### Assets (no npm)
 
-### Admin assets (no npm)
+Plugin `Assets` builds when the environment is **not** `local`. Same layout for plugin root and each block:
 
-`Assets` builds admin bundles when the environment is **not** `local`:
+- `assets/src/front/{css,js}` → `assets/build/front/{css,js}/front.min.*`
+- `assets/src/admin/{css,js}` → `assets/build/admin/{css,js}/admin.min.*`
 
-- Sources: `assets/src/admin/css/` and `assets/src/admin/js/` (ordered via `index.php` manifests)
-- Output: `assets/build/css/admin.min.css`, `assets/build/js/admin.min.js`
-- On `local`, raw sources are enqueued instead
+Order comes from each folder’s `index.php` manifest. On `local`, sources register/enqueue instead of min files.
 
-Edit admin sources under `assets/src/admin/`. Do not hand-edit `assets/build/`. Rebuild happens on the next request when sources are newer than the build files.
+**Plugin-level** (`{plugin}/assets/`): if `src/front` or `src/admin` exist, they enqueue on `wp_enqueue_scripts` / `admin_enqueue_scripts`.
 
-Player (block) CSS/JS are **not** run through this pipeline; they ship as the files referenced from `block.json`.
+**Block-level** (`blocks/{slug}/assets/`): front handles attach through `block_type_metadata` (load only when the block is present). Block admin bundles enqueue on `{textdomain_as_underscores}_enqueue_admin` with block slug + handle (see `Config::hook()`).
+
+Do not hand-edit `assets/build/` trees. Rebuild on the next request when sources are newer than the build files.
 
 ---
 
@@ -188,13 +179,13 @@ Permission: user can `edit_post` the playlist.
 
 ### Changing player CSS
 
-Edit files under `blocks/rm-audio-playlist/css/`. Keep concerns split (`base`, `art-lightbox`, `progress`, `controls`, `queue`). Register new files in `block.json` `style` if you add more.
+Edit files under `blocks/rm-audio-playlist/assets/src/front/css/`. Keep concerns split (`base`, `art-lightbox`, `progress`, `controls`, `queue`). Add new files to that folder’s `index.php`.
 
 Prefer mobile-first CSS, nested `@media` at `768px` / `1024px`, logical properties, and theme `--accent` when styling accents.
 
 ### Changing player JS
 
-Scripts share `window.RmAudioPlaylist`. Each file is an IIFE that reads/writes that namespace. Keep numbered order in `block.json` `script` when adding modules.
+Scripts live under `assets/src/front/js/`. They share `window.RmAudioPlaylist`. Each file is an IIFE that reads/writes that namespace. Keep order in that folder’s `index.php` when adding modules.
 
 | File | Role |
 |------|------|
@@ -219,7 +210,7 @@ git checkout -b feature/your-change
 git push -u origin HEAD
 ```
 
-`main` is the shippable branch. `assets/build/` is gitignored.
+`main` is the shippable branch. `assets/build/` and `blocks/*/assets/build/` are gitignored.
 
 ---
 
